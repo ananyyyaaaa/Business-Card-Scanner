@@ -1,12 +1,41 @@
 import nodemailer from 'nodemailer';
 
-// Create transporter - using Gmail as default, can be configured via env
+// Create transporter – supports both service shortcuts (e.g. "gmail")
+// and full SMTP host/port configuration for providers like Resend/Mailgun.
 const createTransporter = () => {
+  const {
+    EMAIL_SERVICE,
+    EMAIL_HOST,
+    EMAIL_PORT,
+    EMAIL_USER,
+    EMAIL_PASS,
+    EMAIL_SECURE,
+  } = process.env;
+
+  if (!EMAIL_USER || !EMAIL_PASS) {
+    throw new Error('Email credentials are not configured');
+  }
+
+  if (EMAIL_HOST) {
+    return nodemailer.createTransport({
+      host: EMAIL_HOST,
+      port: Number(EMAIL_PORT) || 465,
+      secure: EMAIL_SECURE
+        ? EMAIL_SECURE === 'true'
+        : Number(EMAIL_PORT || 465) === 465,
+      auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS,
+      },
+      connectionTimeout: 20000,
+    });
+  }
+
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
+    service: EMAIL_SERVICE || 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: EMAIL_USER,
+      pass: EMAIL_PASS,
     },
   });
 };
@@ -16,7 +45,7 @@ export const sendOtpEmail = async (email, otp) => {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Your OTP for BizCard',
       html: `

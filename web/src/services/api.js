@@ -1,7 +1,7 @@
 const BACKEND_BASE = (
   import.meta.env.VITE_BACKEND_URL ||
   (typeof window !== 'undefined' ? window.BACKEND_URL : '') ||
-  'https://bizcard-auq6.onrender.com'
+  'https://business-card-scanner-pyrt.onrender.com'
 ).replace(/\/$/, '');
 
 export async function saveCardEntry(imageFile, audioBlob, fields, exhibitionId = null, createdBy = '') {

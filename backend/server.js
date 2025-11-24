@@ -24,7 +24,7 @@ connectDB();
 // ---------------- Middleware ----------------
 app.use(
   cors({
-    origin: "*", // Allow all origins for now (adjust for production security)
+    origin: process.env.FRONTEND_URL, // Allow all origins for now (adjust for production security)
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
