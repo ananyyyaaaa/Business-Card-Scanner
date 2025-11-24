@@ -1,5 +1,6 @@
 // const { createWorker } = require("tesseract.js");
 import Card from "../models/Card.js";
+import Exhibition from '../models/Exhibition.js';
 import path from "path";
 import fs from "fs";
 import runOCR from "../utils/ocr.js";
@@ -65,6 +66,16 @@ export const extractOCR = async (req, res) => {
 // ---------------- Manual save route ----------------
 export const saveEntry = async (req, res) => {
   try {
+    const exhibitionId = req.body.exhibitionId ?? req.body.fields?.exhibitionId;
+    if (exhibitionId) {
+      const exhibition = await Exhibition.findById(exhibitionId);
+      if (!exhibition) return res.status(404).json({ success: false, message: 'Exhibition not found' });
+      const now = new Date();
+      if (now < exhibition.startTime || now > exhibition.endTime) {
+        return res.status(403).json({ success: false, message: 'This exhibition is not currently live. Cannot save new cards.' });
+      }
+    }
+
     console.log("=== Save Entry Request ===");
     console.log("Files received:", req.files);
     console.log("Body:", req.body);

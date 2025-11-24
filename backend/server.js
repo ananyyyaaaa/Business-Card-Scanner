@@ -2,9 +2,11 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
-import mongoose from "mongoose";
+import connectDB from "./config/db.js";
 import cardRoutes from "./routes/cardRoutes.js";
 import exhibitionRoutes from "./routes/exhibitionRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -17,11 +19,7 @@ const app = express();
 app.set("trust proxy", true);
 
 // ---------------- Mongoose Connection ----------------
-const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/bizcard'; // Fallback for local dev
-mongoose
-  .connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+connectDB();
 
 // ---------------- Middleware ----------------
 app.use(
@@ -61,6 +59,8 @@ app.use(
 // ---------------- Routes ----------------
 app.use("/api/cards", cardRoutes);
 app.use("/api/exhibitions", exhibitionRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ---------------- Server ----------------
 const PORT = process.env.PORT || 5000;

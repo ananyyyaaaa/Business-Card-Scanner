@@ -1,0 +1,30 @@
+import React from 'react';
+
+const AccessDenied = () => {
+  return (
+    <div className="container" style={{ maxWidth: '600px', margin: '80px auto', textAlign: 'center' }}>
+      <div style={{ background: 'linear-gradient(180deg, rgba(239,68,68,0.1), rgba(220,38,38,0.1))', border: '2px solid rgba(239,68,68,0.3)', borderRadius: '16px', padding: '48px' }}>
+        <h1 style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</h1>
+        <h2 style={{ marginBottom: '16px' }}>Access Denied</h2>
+        <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: '1.6' }}>
+          You do not have access to this website yet. Your IP address has been sent to the administrator for approval.
+          <br /><br />
+          Please wait for admin approval. You will be notified once your access is granted.
+        </p>
+        <button 
+          className="btn" 
+          onClick={() => {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+          }}
+          style={{ marginTop: '24px' }}
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default AccessDenied;
+

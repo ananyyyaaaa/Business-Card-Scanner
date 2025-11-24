@@ -53,9 +53,9 @@ export async function getCardsForExhibition(exhibitionId) {
   return res.json();
 }
 
-export async function createExhibition({ name, date, time, createdBy = '' }) {
+export async function createExhibition({ name, startTime, endTime, timezone, country, createdBy = '' }) {
   const url = `${BACKEND_BASE}/api/exhibitions`;
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, date, time, createdBy }) });
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, startTime, endTime, timezone, country, createdBy }) });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Create exhibition error ${res.status}: ${txt}`);
@@ -103,4 +103,160 @@ export async function getLiveExhibitions() {
   return res.json();
 }
 
+export async function signup(name, email, password) {
+  const url = `${BACKEND_BASE}/api/users/signup`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Signup error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function sendOtp(email) {
+  const url = `${BACKEND_BASE}/api/users/send-otp`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`OTP send error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function verifyOtp(email, otp) {
+  const url = `${BACKEND_BASE}/api/users/verify-otp`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`OTP verification error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function login(email, password, otp) {
+  const url = `${BACKEND_BASE}/api/users/login`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, otp }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Login error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function checkAccess() {
+  const url = `${BACKEND_BASE}/api/users/check-access`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Access check error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function getCurrentUser() {
+  const url = `${BACKEND_BASE}/api/users/me`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get user error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function adminLogin(email, password) {
+  const url = `${BACKEND_BASE}/api/admin/login`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Admin login error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function getIpRequests() {
+  const url = `${BACKEND_BASE}/api/admin/ip-requests`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get IP requests error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function approveIpRequest(requestId, approved) {
+  const url = `${BACKEND_BASE}/api/admin/ip-requests/${requestId}`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify({ approved }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Approve IP request error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function updateCard(cardId, fields) {
+  const url = `${BACKEND_BASE}/api/cards/${cardId}`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Update card error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
 

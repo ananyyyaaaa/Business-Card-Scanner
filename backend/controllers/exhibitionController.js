@@ -3,9 +3,18 @@ import Card from "../models/Card.js";
 
 export const createExhibition = async (req, res) => {
   try {
-    const { name, date, time, createdBy } = req.body;
-    if (!name || !date) return res.status(400).json({ success: false, message: 'Name and date required' });
-    const ex = await Exhibition.create({ name, date: new Date(date), time: time || '', createdBy: createdBy || '' });
+    const { name, startTime, endTime, timezone, country, createdBy } = req.body;
+    if (!name || !startTime || !endTime || !timezone || !country) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+    const ex = await Exhibition.create({
+      name,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      timezone,
+      country,
+      createdBy: createdBy || '',
+    });
     return res.status(201).json({ success: true, data: ex });
   } catch (err) {
     console.error('Create exhibition error', err);
@@ -15,7 +24,7 @@ export const createExhibition = async (req, res) => {
 
 export const listExhibitions = async (req, res) => {
   try {
-    const items = await Exhibition.find().sort({ date: -1, createdAt: -1 });
+    const items = await Exhibition.find().sort({ startTime: -1, createdAt: -1 });
     return res.json({ success: true, data: items });
   } catch (err) {
     console.error('List exhibitions error', err);
@@ -30,10 +39,12 @@ export const duplicateExhibition = async (req, res) => {
     if (!original) return res.status(404).json({ success: false, message: 'Exhibition not found' });
     const dup = await Exhibition.create({
       name: original.name + ' (copy)',
-      date: original.date,
-      time: original.time,
+      startTime: original.startTime,
+      endTime: original.endTime,
+      timezone: original.timezone,
+      country: original.country,
       createdBy: req.body.createdBy || original.createdBy || '',
-      duplicatedFrom: original._id
+      duplicatedFrom: original._id,
     });
     return res.status(201).json({ success: true, data: dup });
   } catch (err) {
@@ -44,10 +55,11 @@ export const duplicateExhibition = async (req, res) => {
 
 export const getLiveExhibitions = async (_req, res) => {
   try {
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    const items = await Exhibition.find({ date: { $gte: start, $lt: end } }).sort({ createdAt: -1 });
+    const now = new Date();
+    const items = await Exhibition.find({
+      startTime: { $lte: now },
+      endTime: { $gte: now },
+    }).sort({ createdAt: -1 });
     return res.json({ success: true, data: items });
   } catch (err) {
     console.error('Get live exhibitions error', err);

@@ -2,17 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { saveCardEntry, extractOcr } from '../services/api.js';
 import { FiUpload, FiImage, FiMic, FiStopCircle, FiTrash2 } from 'react-icons/fi';
 
-const DEFAULT_FIELDS = { name: '', email: '', phone: '', address: '', website: '', company: '', extras: {} };
+const FORM_FIELDS = ['name', 'email', 'phone', 'address', 'website', 'company'];
+const DEFAULT_FIELDS = FORM_FIELDS.reduce((acc, field) => ({ ...acc, [field]: '' }), { extras: {} });
 
 export default function BusinessCard({ activeExhibition }) {
   const [imageFile, setImageFile] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [fields, setFields] = useState(DEFAULT_FIELDS);
+  const [fields, setFields] = useState({ ...DEFAULT_FIELDS });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState({ ocr: false, save: false });
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+
+  const isLive = activeExhibition && activeExhibition.isLive;
+
+  useEffect(() => {
+    if (activeExhibition && !isLive) {
+      showMessage('This exhibition is not live. You can view cards in the dashboard.', 'info');
+    }
+  }, [activeExhibition, isLive]);
 
   const showMessage = (text, type = 'info') => {
     setMessage({ text, type });
@@ -89,7 +98,7 @@ export default function BusinessCard({ activeExhibition }) {
       const result = await saveCardEntry(imageFile, audioBlob, fields, activeExhibition?._id ?? null, activeExhibition?.createdBy ?? '');
       if (result?.success) {
         showMessage('Card saved successfully!', 'success');
-        setFields(DEFAULT_FIELDS);
+        setFields({ ...DEFAULT_FIELDS });
         setImageFile(null);
         setAudioBlob(null);
       } else {
@@ -112,7 +121,7 @@ export default function BusinessCard({ activeExhibition }) {
     <div className="card-page">
       {activeExhibition ? (
         <div style={{ marginBottom: 12 }}>
-          <strong>Active Exhibition:</strong> {activeExhibition.name} (Date: {new Date(activeExhibition.date).toLocaleDateString()})
+          <strong>Active Exhibition:</strong> {activeExhibition.name} (Date: {new Date(activeExhibition.startTime).toLocaleDateString()})
         </div>
       ) : (
         <div style={{ marginBottom: 12 }}>
@@ -190,21 +199,21 @@ export default function BusinessCard({ activeExhibition }) {
       )}
 
       <div className="table">
-        {Object.entries(fields).map(([k, v]) => (
-          <div className="row" key={k}>
-            <label className="label" htmlFor={`f-${k}`}>{k}</label>
+        {FORM_FIELDS.map((field) => (
+          <div className="row" key={field}>
+            <label className="label" htmlFor={`f-${field}`}>{field}</label>
             <input
-              id={`f-${k}`}
+              id={`f-${field}`}
               className="input"
-              placeholder={`Enter ${k}`}
-              value={v}
-              onChange={(e) => handleChange(k, e.target.value)}
+              placeholder={`Enter ${field}`}
+              value={fields[field] || ''}
+              onChange={(e) => handleChange(field, e.target.value)}
             />
           </div>
         ))}
       </div>
 
-      <button className="primary" onClick={handleSave} disabled={loading.save}>Save Card</button>
+      <button className="primary" onClick={handleSave} disabled={loading.save || (activeExhibition && !isLive)}>Save Card</button>
     </div>
   );
 }

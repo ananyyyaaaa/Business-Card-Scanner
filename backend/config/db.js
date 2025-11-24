@@ -1,13 +1,14 @@
-const mongoose = require("mongoose");
-const winston = require("winston");
+import mongoose from "mongoose";
+import winston from "winston";
 
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
+    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/bizcard'; // Fallback for local dev
+    if (!mongoUri) {
       winston.error("Error: MONGO_URI environment variable is not defined.");
       process.exit(1);
     }
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -19,4 +20,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;
