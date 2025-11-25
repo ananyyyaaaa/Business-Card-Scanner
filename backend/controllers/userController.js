@@ -70,7 +70,11 @@ const sendOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send OTP error:', error);
-    res.status(500).json({ message: error.message || 'Failed to send OTP' });
+    const statusCode = error.message.includes('not configured') ? 500 : 500;
+    res.status(statusCode).json({ 
+      message: error.message || 'Failed to send OTP',
+      error: process.env.NODE_ENV !== 'production' ? error.code : undefined
+    });
   }
 };
 
@@ -154,7 +158,15 @@ const loginUser = async (req, res) => {
       user.otpExpires = otpExpires;
       await user.save();
 
-      await sendOtpEmail(email, newOtp);
+      try {
+        await sendOtpEmail(email, newOtp);
+      } catch (emailError) {
+        console.error('Failed to send OTP email:', emailError);
+        // Still allow login in dev mode, but log the error
+        if (process.env.NODE_ENV === 'production') {
+          throw emailError;
+        }
+      }
 
       return res.json({
         success: true,

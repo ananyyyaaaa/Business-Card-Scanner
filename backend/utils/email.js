@@ -65,12 +65,27 @@ export const sendOtpEmail = async (email, otp) => {
     return { success: true };
   } catch (error) {
     console.error('Email send error:', error);
+    console.error('Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode,
+    });
+    
     // If email service is not configured, log OTP to console for development
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'production' || !process.env.EMAIL_HOST) {
       console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
       return { success: true };
     }
-    throw new Error('Failed to send email');
+    
+    // Provide more specific error message
+    const errorMessage = error.code === 'ETIMEDOUT' 
+      ? 'Email server connection timeout. Check EMAIL_HOST and EMAIL_PORT settings.'
+      : error.code === 'EAUTH'
+      ? 'Email authentication failed. Check EMAIL_USER and EMAIL_PASS.'
+      : error.message || 'Failed to send email';
+    
+    throw new Error(errorMessage);
   }
 };
 
