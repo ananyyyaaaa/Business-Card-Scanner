@@ -6,7 +6,7 @@ import { generateOtp, isOtpValid } from '../utils/otp.js';
 import { sendOtpEmail } from '../utils/email.js';
 import { getClientIp, getIpGeolocation } from '../utils/ipGeolocation.js';
 
-// @desc    Register a new user
+// @desc    Register a new user (OTP disabled - IP approval only)
 // @route   POST /api/users/signup
 // @access  Public
 const signupUser = async (req, res) => {
@@ -32,9 +32,40 @@ const signupUser = async (req, res) => {
       password: hashedPassword,
     });
 
+    // OTP functionality commented out - can be re-enabled later
+    // res.status(201).json({
+    //   success: true,
+    //   message: 'User created successfully. OTP will be sent to your email.',
+    // });
+
+    // Get IP and geolocation for new user
+    const clientIp = getClientIp(req);
+    console.log('New user signup - Client IP:', clientIp);
+    const geoData = await getIpGeolocation(clientIp);
+    console.log('New user signup - Geo data:', geoData);
+
+    // Create IP request for new user
+    const ipRequest = await IpRequest.create({
+      userId: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      ipAddress: clientIp,
+      countryCode: geoData.countryCode,
+      countryName: geoData.countryName,
+      approved: false,
+    });
+    console.log('Created IP request for new user:', ipRequest._id);
+
+    // Generate token for new user (they'll need admin approval to access)
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
     res.status(201).json({
       success: true,
-      message: 'User created successfully. OTP will be sent to your email.',
+      token,
+      hasAccess: false,
+      message: 'Account created successfully. Your IP address has been sent to admin for approval.',
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -119,11 +150,13 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-// @desc    Login user with OTP
+// @desc    Login user (OTP disabled - IP approval only)
 // @route   POST /api/users/login
 // @access  Public
 const loginUser = async (req, res) => {
-  const { email, password, otp } = req.body;
+  const { email, password } = req.body;
+  // OTP parameter commented out - can be re-enabled later
+  // const { email, password, otp } = req.body;
 
   try {
     if (!email || !password) {
@@ -136,44 +169,45 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // If OTP is provided, verify it
-    if (otp) {
-      if (!user.otp || user.otp !== otp) {
-        return res.status(400).json({ message: 'Invalid OTP' });
-      }
+    // OTP verification commented out - can be re-enabled later
+    // // If OTP is provided, verify it
+    // if (otp) {
+    //   if (!user.otp || user.otp !== otp) {
+    //     return res.status(400).json({ message: 'Invalid OTP' });
+    //   }
 
-      if (!isOtpValid(user.otpExpires)) {
-        return res.status(400).json({ message: 'OTP has expired' });
-      }
+    //   if (!isOtpValid(user.otpExpires)) {
+    //     return res.status(400).json({ message: 'OTP has expired' });
+    //   }
 
-      user.otp = null;
-      user.otpExpires = null;
-      await user.save();
-    } else {
-      // Send OTP if not provided
-      const newOtp = generateOtp();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    //   user.otp = null;
+    //   user.otpExpires = null;
+    //   await user.save();
+    // } else {
+    //   // Send OTP if not provided
+    //   const newOtp = generateOtp();
+    //   const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-      user.otp = newOtp;
-      user.otpExpires = otpExpires;
-      await user.save();
+    //   user.otp = newOtp;
+    //   user.otpExpires = otpExpires;
+    //   await user.save();
 
-      try {
-        await sendOtpEmail(email, newOtp);
-      } catch (emailError) {
-        console.error('Failed to send OTP email:', emailError);
-        // Still allow login in dev mode, but log the error
-        if (process.env.NODE_ENV === 'production') {
-          throw emailError;
-        }
-      }
+    //   try {
+    //     await sendOtpEmail(email, newOtp);
+    //   } catch (emailError) {
+    //     console.error('Failed to send OTP email:', emailError);
+    //     // Still allow login in dev mode, but log the error
+    //     if (process.env.NODE_ENV === 'production') {
+    //       throw emailError;
+    //     }
+    //   }
 
-      return res.json({
-        success: true,
-        message: 'OTP sent to your email',
-        requiresOtp: true,
-      });
-    }
+    //   return res.json({
+    //     success: true,
+    //     message: 'OTP sent to your email',
+    //     requiresOtp: true,
+    //   });
+    // }
 
     // Get IP and geolocation
     const clientIp = getClientIp(req);

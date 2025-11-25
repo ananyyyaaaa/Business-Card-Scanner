@@ -171,12 +171,19 @@ export async function verifyOtp(email, otp) {
   return res.json();
 }
 
-export async function login(email, password, otp) {
+// Login without OTP - IP approval only
+export async function login(email, password, otp = null) {
+  // OTP parameter commented out - can be re-enabled later
+  // export async function login(email, password, otp) {
   const url = `${BACKEND_BASE}/api/users/login`;
+  const body = { email, password };
+  // OTP removed from request body - can be re-enabled later
+  // if (otp) body.otp = otp;
+  
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, otp }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const txt = await res.text();
