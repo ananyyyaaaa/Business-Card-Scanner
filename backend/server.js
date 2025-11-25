@@ -122,6 +122,22 @@ app.use("/api/exhibitions", exhibitionRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 
+// Serve frontend build when available so refreshed routes resolve correctly
+const frontendDistPath = path.join(__dirname, "..", "web", "dist");
+if (fs.existsSync(frontendDistPath)) {
+  console.log(`📦 Serving frontend from ${frontendDistPath}`);
+  app.use(express.static(frontendDistPath));
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/") || req.method !== "GET") {
+      return next();
+    }
+
+    return res.sendFile(path.join(frontendDistPath, "index.html"));
+  });
+} else {
+  console.warn("⚠️ Frontend dist folder not found. SPA routes will 404 on refresh until the frontend is built.");
+}
+
 // ---------------- Server ----------------
 const PORT = process.env.PORT || 5000;
 

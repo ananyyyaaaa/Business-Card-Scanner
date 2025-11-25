@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { saveEntry, getAllCards, extractOCR } from "../controllers/cardController.js";
+import { saveEntry, getAllCards, extractOCR, updateCardDetails } from "../controllers/cardController.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +33,7 @@ const upload = multer({ storage });
 // Routes
 router.post("/save-entry", upload.fields([{ name: "image", maxCount: 1 }, { name: "audio", maxCount: 1 }]), saveEntry);
 router.get("/", getAllCards);
+router.put("/:id", updateCardDetails);
 router.post("/extract-ocr", upload.single("image"), extractOCR);
 
 export default router;

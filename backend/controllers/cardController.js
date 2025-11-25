@@ -165,3 +165,37 @@ export const getAllCards = async (_req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch cards", error: error.message });
   }
 };
+
+export const updateCardDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fields = {} } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Card ID is required' });
+    }
+
+    const allowedFields = ['name', 'email', 'phone', 'address', 'website', 'company', 'extras'];
+    const update = {};
+
+    allowedFields.forEach((field) => {
+      if (fields[field] !== undefined) {
+        update[field] = fields[field];
+      }
+    });
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid fields provided to update' });
+    }
+
+    const updated = await Card.findByIdAndUpdate(id, update, { new: true });
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Card not found' });
+    }
+
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update card error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update card', error: error.message });
+  }
+};

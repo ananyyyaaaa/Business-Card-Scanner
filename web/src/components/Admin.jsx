@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiRefreshCw, FiCheck, FiX } from 'react-icons/fi';
+import { FiCheck, FiX } from 'react-icons/fi';
 import { getIpRequests, approveIpRequest, listExhibitions, getLiveExhibitions } from '../services/api';
 import countries from '../countries.json';
 
@@ -11,7 +11,6 @@ export default function Admin() {
   const [exhibitions, setExhibitions] = useState([]);
   const [live, setLive] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -22,16 +21,13 @@ export default function Admin() {
     }
   }, [navigate]);
 
-  const loadIpRequests = async (showLoading = false) => {
+  const loadIpRequests = async () => {
     try {
-      if (showLoading) setRefreshing(true);
       const res = await getIpRequests();
       setIpRequests(res?.data || []);
       setError('');
     } catch (e) {
       setError(e.message || 'Failed to load IP requests');
-    } finally {
-      if (showLoading) setRefreshing(false);
     }
   };
 
@@ -62,9 +58,21 @@ export default function Admin() {
   // Auto-refresh IP requests every 10 seconds
   useEffect(() => {
     if (activeTab === 'ip-requests') {
+      loadIpRequests();
       const interval = setInterval(() => {
         loadIpRequests();
       }, 10000); // 10 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'exhibitions') {
+      loadExhibitions();
+      const interval = setInterval(() => {
+        loadExhibitions();
+      }, 30000); // 30 seconds
 
       return () => clearInterval(interval);
     }
@@ -162,17 +170,6 @@ export default function Admin() {
                 <span>Approved</span>
                 <strong>{ipRequests.filter(r => r.approved).length}</strong>
               </div>
-              <button 
-                className="btn admin-refresh" 
-                onClick={() => loadIpRequests(true)}
-                disabled={refreshing}
-              >
-                <FiRefreshCw style={{ 
-                  animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                  marginRight: '6px'
-                }} />
-                Refresh
-              </button>
             </div>
           </div>
           {ipRequests.length === 0 ? (

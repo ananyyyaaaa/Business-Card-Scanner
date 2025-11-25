@@ -5,6 +5,35 @@ import { listExhibitions, createExhibition, getLiveExhibitions } from '../servic
 import timezones from '../timezones.json'; // Assuming you have a timezones.json file
 import countries from '../countries.json'; // Assuming you have a countries.json file
 
+const parseTimezoneOffsetMinutes = (timezone) => {
+  const match = /^UTC([+-])(\d{2}):(\d{2})$/.exec(timezone || '');
+  if (!match) return null;
+  const [, sign, hours, minutes] = match;
+  const baseMinutes = parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+  return sign === '-' ? -baseMinutes : baseMinutes;
+};
+
+const toUtcISOString = (value, timezone) => {
+  if (!value) return '';
+  const tzOffset = parseTimezoneOffsetMinutes(timezone);
+
+  if (!tzOffset && tzOffset !== 0) {
+    const localDate = new Date(value);
+    if (Number.isNaN(localDate.getTime())) return '';
+    return localDate.toISOString();
+  }
+
+  const [datePart, timePart] = value.split('T');
+  if (!datePart || !timePart) return '';
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes] = timePart.split(':').map(Number);
+  if ([year, month, day, hours, minutes].some((n) => Number.isNaN(n))) return '';
+
+  const utcMillis = Date.UTC(year, month - 1, day, hours, minutes);
+  const adjustedMillis = utcMillis - tzOffset * 60000;
+  return new Date(adjustedMillis).toISOString();
+};
+
 export default function Home({ setActiveExhibition, setTab, userName }) {
   const [exhibitions, setExhibitions] = useState([]);
   const [live, setLive] = useState([]);
@@ -116,7 +145,28 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
       return;
     }
 
-    handleCreate({ ...form });
+    const startUtc = toUtcISOString(form.startTime, form.timezone);
+    const endUtc = toUtcISOString(form.endTime, form.timezone);
+
+    if (!startUtc || !endUtc) {
+      setMessage({ type: 'error', text: 'Invalid start or end time' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+      return;
+    }
+
+    if (new Date(startUtc) >= new Date(endUtc)) {
+      setMessage({ type: 'error', text: 'End time must be after start time' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+      return;
+    }
+
+    const payload = {
+      ...form,
+      startTime: startUtc,
+      endTime: endUtc,
+    };
+
+    handleCreate(payload);
   };
 
   const handleOpenCreate = () => {
