@@ -34,5 +34,21 @@ npm run preview
 
 ## Deploy
 
+### Render (Recommended)
+
+1. **Configure as Web Service** (not Static Site):
+   - **Root Directory**: `web`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+   - **Environment**: `Node`
+
+2. **Environment Variables**:
+   - `VITE_BACKEND_URL`: Your backend URL (e.g., `https://business-card-scanner-pyrt.onrender.com`)
+
+3. The server will automatically handle SPA routing and serve `index.html` for all routes.
+
+### Other Static Hosts
+
 - The `dist/` folder is static and can be hosted on any static host (Netlify, Vercel static, S3+CF, etc.).
-- Ensure the backend is reachable from the deployed origin and that CORS allows it (backend currently allows all origins).
+- For static hosts, ensure they support SPA routing (serving `index.html` for all routes).
+- Ensure the backend is reachable from the deployed origin and that CORS allows it.
