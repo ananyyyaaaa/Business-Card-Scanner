@@ -1,49 +1,6 @@
 import nodemailer from 'nodemailer';
 
-// Try Resend API first (recommended for Render), then fall back to SMTP
-const sendViaResend = async (email, otp) => {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY) return null;
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || process.env.RESEND_FROM || 'BizCard <onboarding@resend.dev>',
-        to: [email],
-        subject: 'Your OTP for BizCard',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #60a5fa;">BizCard OTP Verification</h2>
-            <p>Your OTP code is:</p>
-            <div style="background: linear-gradient(135deg, #60a5fa, #f472b6); color: white; padding: 20px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0;">
-              ${otp}
-            </div>
-            <p>This OTP will expire in 10 minutes.</p>
-            <p style="color: #999; font-size: 12px;">If you didn't request this OTP, please ignore this email.</p>
-          </div>
-        `,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Resend API error');
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Resend API error:', error);
-    return null; // Return null to fall back to SMTP
-  }
-};
-
-// Create transporter – supports both service shortcuts (e.g. "gmail")
-// and full SMTP host/port configuration for providers like Resend/Mailgun.
+// Create Gmail SMTP transporter - optimized for Render deployment
 const createTransporter = () => {
   const {
     EMAIL_SERVICE,
@@ -54,10 +11,12 @@ const createTransporter = () => {
     EMAIL_SECURE,
   } = process.env;
 
+  // Check if credentials are provided
   if (!EMAIL_USER || !EMAIL_PASS) {
-    throw new Error('Email credentials are not configured');
+    return null; // Return null instead of throwing - let caller handle it
   }
 
+  // If EMAIL_HOST is provided, use custom SMTP settings
   if (EMAIL_HOST) {
     return nodemailer.createTransport({
       host: EMAIL_HOST,
@@ -69,42 +28,45 @@ const createTransporter = () => {
         user: EMAIL_USER,
         pass: EMAIL_PASS,
       },
-      connectionTimeout: 10000, // Reduced from 20s to 10s
-      greetingTimeout: 5000,
-      socketTimeout: 10000,
-      // Retry configuration
+      connectionTimeout: 20000, // 20 seconds for Render
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
+      // Retry configuration for reliability
       pool: true,
       maxConnections: 1,
       maxMessages: 3,
     });
   }
 
+  // Default to Gmail service (works best with EMAIL_SERVICE=gmail)
   return nodemailer.createTransport({
     service: EMAIL_SERVICE || 'gmail',
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASS,
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 5000,
-    socketTimeout: 10000,
+    connectionTimeout: 20000, // 20 seconds for Render
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 };
 
 export const sendOtpEmail = async (email, otp) => {
-  // Try Resend API first (works better on Render)
-  if (process.env.RESEND_API_KEY) {
-    const resendResult = await sendViaResend(email, otp);
-    if (resendResult) {
-      return resendResult;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Create Gmail SMTP transporter
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    // No email credentials configured
+    if (!isProduction) {
+      console.log(`📧 [DEV MODE] Email not configured. OTP for ${email}: ${otp}`);
+      return { success: true };
     }
-    console.log('Resend API failed, falling back to SMTP');
+    throw new Error('Email credentials are not configured. Please set EMAIL_USER and EMAIL_PASS in production.');
   }
 
-  // Fall back to SMTP
   try {
-    const transporter = createTransporter();
-    
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -123,9 +85,10 @@ export const sendOtpEmail = async (email, otp) => {
     };
 
     await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent via SMTP');
     return { success: true };
   } catch (error) {
-    console.error('Email send error:', error);
+    console.error('❌ Email send error:', error);
     console.error('Error details:', {
       code: error.code,
       command: error.command,
@@ -133,18 +96,23 @@ export const sendOtpEmail = async (email, otp) => {
       responseCode: error.responseCode,
     });
     
-    // If email service is not configured, log OTP to console for development
-    if (process.env.NODE_ENV !== 'production' || (!process.env.EMAIL_HOST && !process.env.RESEND_API_KEY)) {
-      console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+    // In development, log OTP to console as fallback
+    if (!isProduction) {
+      console.log(`📧 [DEV MODE] SMTP failed. OTP for ${email}: ${otp}`);
       return { success: true };
     }
     
-    // Provide more specific error message
-    const errorMessage = error.code === 'ETIMEDOUT' 
-      ? 'Email server connection timeout. Consider using Resend API (set RESEND_API_KEY) instead of SMTP for better reliability on Render.'
-      : error.code === 'EAUTH'
-      ? 'Email authentication failed. Check EMAIL_USER and EMAIL_PASS.'
-      : error.message || 'Failed to send email';
+    // In production, provide specific error messages
+    let errorMessage = 'Failed to send email';
+    if (error.code === 'ETIMEDOUT') {
+      errorMessage = 'Email server connection timeout. Check EMAIL_HOST and EMAIL_PORT settings. For Gmail, use EMAIL_SERVICE=gmail with an App Password.';
+    } else if (error.code === 'EAUTH') {
+      errorMessage = 'Email authentication failed. For Gmail, make sure you\'re using an App Password (not your regular password). Generate one at: https://myaccount.google.com/apppasswords';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorMessage = 'Cannot connect to email server. Check EMAIL_HOST and EMAIL_PORT. For Gmail, use EMAIL_SERVICE=gmail.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
     
     throw new Error(errorMessage);
   }

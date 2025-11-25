@@ -1,8 +1,26 @@
-const BACKEND_BASE = (
-  import.meta.env.VITE_BACKEND_URL ||
-  (typeof window !== 'undefined' ? window.BACKEND_URL : '') ||
-  'https://business-card-scanner-pyrt.onrender.com'
-).replace(/\/$/, '');
+// Determine backend URL - use localhost in development, Render URL in production
+const getBackendBase = () => {
+  // Check for explicit env var first
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
+  }
+  
+  // Check for window variable (runtime config)
+  if (typeof window !== 'undefined' && window.BACKEND_URL) {
+    return window.BACKEND_URL.replace(/\/$/, '');
+  }
+  
+  // Default: localhost for development, Render URL for production
+  const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
+  if (isDevelopment) {
+    return 'http://localhost:5000';
+  }
+  
+  return 'https://business-card-scanner-pyrt.onrender.com';
+};
+
+const BACKEND_BASE = getBackendBase();
+console.log('🔗 Backend URL:', BACKEND_BASE);
 
 export async function saveCardEntry(imageFile, audioBlob, fields, exhibitionId = null, createdBy = '') {
   const form = new FormData();
@@ -119,16 +137,24 @@ export async function signup(name, email, password) {
 
 export async function sendOtp(email) {
   const url = `${BACKEND_BASE}/api/users/send-otp`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`OTP send error ${res.status}: ${txt}`);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`OTP send error ${res.status}: ${txt}`);
+    }
+    return res.json();
+  } catch (error) {
+    // Provide more helpful error messages
+    if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+      throw new Error(`Cannot connect to backend at ${BACKEND_BASE}. Make sure the backend server is running.`);
+    }
+    throw error;
   }
-  return res.json();
 }
 
 export async function verifyOtp(email, otp) {

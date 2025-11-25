@@ -39,26 +39,32 @@ connectDB().catch((err) => {
 });
 
 // ---------------- Middleware ----------------
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL]
-  : ['https://yourbusinesscardscanner.onrender.com', 'http://localhost:5173'];
+const isProduction = process.env.NODE_ENV === 'production';
+const frontendUrl = process.env.FRONTEND_URL || 'https://yourbusinesscardscanner.onrender.com';
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+// CORS configuration - permissive in development, strict in production
+if (isProduction) {
+  // Production: Only allow specific frontend URL
+  app.use(
+    cors({
+      origin: frontendUrl,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    })
+  );
+} else {
+  // Development: Allow all origins (safe for local development)
+  app.use(
+    cors({
+      origin: true, // Allow all origins in development
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    })
+  );
+  console.log('🔓 CORS: Allowing all origins (development mode)');
+}
 app.use(express.json());
 
 // ---------------- Static File Serving ----------------
