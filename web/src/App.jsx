@@ -19,6 +19,7 @@ const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    let mounted = true;
     if (!token) {
       setHasAccess(false);
       setLoading(false);
@@ -28,16 +29,39 @@ const PrivateRoute = ({ children }) => {
     const verifyAccess = async () => {
       try {
         const res = await checkAccess();
+        if (!mounted) return;
         setHasAccess(res.hasAccess || false);
       } catch (error) {
+        if (!mounted) return;
         setHasAccess(false);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     verifyAccess();
+
+    return () => {
+      mounted = false;
+    };
   }, [token]);
+
+  useEffect(() => {
+    if (!token || loading || hasAccess) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await checkAccess();
+        if (res.hasAccess) {
+          setHasAccess(true);
+          setLoading(false);
+          clearInterval(interval);
+        }
+      } catch (error) {
+        // ignore until next poll
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [token, hasAccess, loading]);
 
   if (loading) {
     return (

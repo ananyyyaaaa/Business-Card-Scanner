@@ -1,28 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { checkAccess } from '../services/api';
 
 const AccessDenied = () => {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Poll for access every 5 seconds
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await checkAccess();
-        if (res.hasAccess) {
-          // Access granted - redirect to home
-          clearInterval(pollInterval);
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Error checking access:', error);
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [navigate]);
-
   return (
     <div className="container" style={{ maxWidth: '600px', margin: '80px auto', textAlign: 'center' }}>
       <div style={{ background: 'linear-gradient(180deg, rgba(239,68,68,0.1), rgba(220,38,38,0.1))', border: '2px solid rgba(239,68,68,0.3)', borderRadius: '16px', padding: '48px' }}>
@@ -40,7 +20,7 @@ const AccessDenied = () => {
           className="btn" 
           onClick={() => {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            navigate('/login');
           }}
           style={{ marginTop: '24px' }}
         >

@@ -74,75 +74,62 @@ const Login = ({ onLogin }) => {
   // };
 
   return (
-    <div className="container" style={{ maxWidth: '500px', margin: '40px auto' }}>
-      <div style={{ background: 'linear-gradient(180deg, rgba(96,165,250,0.1), rgba(244,114,182,0.1))', border: '1px solid rgba(96,165,250,0.3)', borderRadius: '16px', padding: '32px' }}>
-        <h2 style={{ marginBottom: '24px', textAlign: 'center' }}>Login</h2>
-        
-        <form onSubmit={handleSubmit}>
-          {error && <div className="msg error" style={{ marginBottom: '16px' }}>{error}</div>}
-          {message && <div className="msg success" style={{ marginBottom: '16px' }}>{message}</div>}
-          <div className="table">
-            <div className="row">
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
-            <div className="row">
-              <label className="label">Password</label>
-              <input
-                type="password"
-                className="input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-info">
+          <div className="auth-badge">
+            <FiShield />
+            Enterprise Access
           </div>
-          <button type="submit" className="primary">Login</button>
-        </form>
+          <h1>Welcome back</h1>
+          <p className="muted">
+            Securely manage exhibitions, scan cards and sync data instantly across the dashboard.
+          </p>
+          <ul className="auth-list">
+            <li>
+              <FiLock />
+              IP whitelisting protects every login.
+            </li>
+            <li>
+              <FiServer />
+              Real-time dashboard updates after every scan.
+            </li>
+          </ul>
+          <Link to="/admin/login" className="auth-link">Admin Login</Link>
+        </div>
 
-        {/* OTP form commented out - can be re-enabled later */}
-        {/* {step === 'otp' && (
-          <form onSubmit={handleOtpSubmit}>
-            {error && <div className="msg error" style={{ marginBottom: '16px' }}>{error}</div>}
-            {message && <div className="msg success" style={{ marginBottom: '16px' }}>{message}</div>}
-            <div className="table">
-              <div className="row">
-                <label className="label">OTP</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter OTP sent to your email"
-                  required
-                  maxLength="6"
-                />
-              </div>
-            </div>
-            <button type="submit" className="primary">Verify & Login</button>
-            <button type="button" className="btn" onClick={handleResendOtp} style={{ marginTop: '12px', width: '100%' }}>
-              Resend OTP
-            </button>
-            <button type="button" className="btn" onClick={() => setStep('credentials')} style={{ marginTop: '8px', width: '100%' }}>
-              Back
+        <div className="auth-form">
+          <h2>Sign in to continue</h2>
+          <p className="muted">Use your registered email and password</p>
+          {error && <div className="msg error">{error}</div>}
+          {message && <div className="msg success">{message}</div>}
+          <form onSubmit={handleSubmit} className="auth-form-fields">
+            <label className="auth-label">Email</label>
+            <input
+              type="email"
+              className="input auth-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+              required
+            />
+            <label className="auth-label">Password</label>
+            <input
+              type="password"
+              className="input auth-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+            <button type="submit" className="primary auth-submit">
+              Login
             </button>
           </form>
-        )} */}
-        
-        <p style={{ textAlign: 'center', marginTop: '24px', color: 'var(--muted)' }}>
-          Don't have an account? <Link to="/signup" style={{ color: '#60a5fa' }}>Sign Up</Link>
-        </p>
-        <p style={{ textAlign: 'center', marginTop: '12px', color: 'var(--muted)' }}>
-          <Link to="/admin/login" style={{ color: '#60a5fa' }}>Admin Login</Link>
-        </p>
+          <p className="auth-footnote">
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
