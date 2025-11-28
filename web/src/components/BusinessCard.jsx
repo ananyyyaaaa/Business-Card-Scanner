@@ -1,12 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveCardEntry, extractOcr } from '../services/api.js';
-import { FiUpload, FiImage, FiMic, FiStopCircle, FiTrash2 } from 'react-icons/fi';
+import { FiUpload, FiImage, FiMic, FiStopCircle, FiTrash2, FiX } from 'react-icons/fi';
 
-const FORM_FIELDS = ['name', 'email', 'phone', 'address', 'website', 'company'];
-const DEFAULT_FIELDS = FORM_FIELDS.reduce((acc, field) => ({ ...acc, [field]: '' }), { extras: {} });
+const TYPE_OF_VISITOR_OPTIONS = [
+  { value: '', label: 'Select Type of Visitor' },
+  { value: 'ENDUSER', label: 'ENDUSER' },
+  { value: 'DEALER', label: 'DEALER' },
+  { value: 'CONSULTANT', label: 'CONSULTANT' },
+  { value: 'DOMESTIC', label: 'DOMESTIC' },
+  { value: 'INTERNATIONAL', label: 'INTERNATIONAL' }
+];
+
+const INTERESTED_PRODUCTS_OPTIONS = [
+  { value: 'LAB GLASSWARE', label: 'LAB GLASSWARE' },
+  { value: 'PLASTICWARE', label: 'PLASTICWARE' },
+  { value: 'FILTERATION', label: 'FILTERATION' },
+  { value: 'INSTRUMENTS', label: 'INSTRUMENTS' },
+  { value: 'HYDROMETERS', label: 'HYDROMETERS' },
+  { value: 'THERMOMETERS', label: 'THERMOMETERS' }
+];
+
+const DEFAULT_FIELDS = {
+  companyName: '',
+  contactPerson: '',
+  designation: '',
+  mobile: '',
+  email: '',
+  address: '',
+  website: '',
+  typeOfVisitor: '',
+  interestedProducts: [],
+  remarks: ''
+};
 
 export default function BusinessCard({ activeExhibition }) {
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [fields, setFields] = useState({ ...DEFAULT_FIELDS });
@@ -14,8 +42,10 @@ export default function BusinessCard({ activeExhibition }) {
   const [loading, setLoading] = useState({ ocr: false, save: false });
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const fileInputRef = useRef(null);
 
   const isLive = activeExhibition && activeExhibition.isLive;
+  const MAX_IMAGES = 5;
 
   useEffect(() => {
     if (activeExhibition && !isLive) {
@@ -29,23 +59,40 @@ export default function BusinessCard({ activeExhibition }) {
     showMessage._t = window.setTimeout(() => setMessage({ text: '', type: '' }), 3000);
   };
 
-  const onPickImage = async (e) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      setImageFile(f);
-      if (!fields || Object.keys(fields).length === 0) setFields({ ...DEFAULT_FIELDS });
-      // Auto-run OCR on upload
+  const onPickImages = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_IMAGES - imageFiles.length;
+    if (remainingSlots <= 0) {
+      showMessage(`Maximum ${MAX_IMAGES} images allowed`, 'error');
+      return;
+    }
+
+    const filesToAdd = files.slice(0, remainingSlots);
+    const newFiles = [...imageFiles, ...filesToAdd];
+    setImageFiles(newFiles);
+
+    // Auto-run OCR on first image if no fields are filled
+    if (imageFiles.length === 0 && filesToAdd.length > 0) {
       try {
         setLoading((s) => ({ ...s, ocr: true }));
-        const result = await extractOcr(f);
+        const result = await extractOcr(filesToAdd[0]);
         if (result?.success && result.fields) {
+          const extracted = result.fields;
+          const services = extracted.extras?.services;
           setFields(prev => ({
             ...prev,
-            ...Object.fromEntries(
-              Object.entries(result.fields).filter(([_, val]) => typeof val === "string" && val.trim() !== "")
-            )
+            companyName: extracted.companyName || extracted.company || prev.companyName,
+            contactPerson: extracted.name || prev.contactPerson,
+            designation: extracted.designation || prev.designation,
+            email: extracted.email || prev.email,
+            mobile: extracted.mobile || extracted.phone || prev.mobile,
+            address: extracted.address || prev.address,
+            website: extracted.website || prev.website,
+            remarks: services?.length ? services.join(', ') : extracted.extras?.raw || prev.remarks,
+            extras: extracted.extras
           }));
-
           showMessage('OCR extracted successfully', 'success');
         }
       } catch (e1) {
@@ -54,6 +101,15 @@ export default function BusinessCard({ activeExhibition }) {
         setLoading((s) => ({ ...s, ocr: false }));
       }
     }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const onRecord = async () => {
@@ -90,16 +146,28 @@ export default function BusinessCard({ activeExhibition }) {
 
   const onDeleteAudio = () => setAudioBlob(null);
 
-  const handleChange = (key, value) => setFields((prev) => ({ ...prev, [key]: value }));
+  const handleChange = (key, value) => {
+    setFields((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleProductToggle = (product) => {
+    setFields((prev) => {
+      const current = prev.interestedProducts || [];
+      const updated = current.includes(product)
+        ? current.filter(p => p !== product)
+        : [...current, product];
+      return { ...prev, interestedProducts: updated };
+    });
+  };
 
   const handleSave = async () => {
     try {
       setLoading((s) => ({ ...s, save: true }));
-      const result = await saveCardEntry(imageFile, audioBlob, fields, activeExhibition?._id ?? null, activeExhibition?.createdBy ?? '');
+      const result = await saveCardEntry(imageFiles, audioBlob, fields, activeExhibition?._id ?? null, activeExhibition?.createdBy ?? '');
       if (result?.success) {
         showMessage('Card saved successfully!', 'success');
-        setFields({ ...DEFAULT_FIELDS });
-        setImageFile(null);
+    setFields({ ...DEFAULT_FIELDS });
+        setImageFiles([]);
         setAudioBlob(null);
       } else {
         showMessage(result?.message || 'Failed to save card', 'error');
@@ -111,11 +179,13 @@ export default function BusinessCard({ activeExhibition }) {
     }
   };
 
-
   const audioUrl = audioBlob ? URL.createObjectURL(audioBlob) : '';
-  const imageUrl = imageFile ? URL.createObjectURL(imageFile) : '';
+  const imageUrls = imageFiles.map(file => URL.createObjectURL(file));
 
-  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); if (imageUrl) URL.revokeObjectURL(imageUrl); }, [audioUrl, imageUrl]);
+  useEffect(() => () => {
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    imageUrls.forEach(url => URL.revokeObjectURL(url));
+  }, [audioUrl, imageUrls]);
 
   return (
     <div className="card-page">
@@ -134,22 +204,96 @@ export default function BusinessCard({ activeExhibition }) {
 
       {(loading.ocr || loading.save) && <div className="loader" aria-busy="true" />}
 
-      {!imageFile && (
+      {imageFiles.length === 0 && (
         <label className="upload-box">
-          <input type="file" accept="image/*" onChange={onPickImage} hidden />
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={onPickImages} 
+            multiple
+            hidden 
+            ref={fileInputRef}
+          />
           <div className="upload-icon" aria-hidden><FiUpload size={42} /></div>
-          <div className="upload-text">Tap to upload business card image</div>
-          <div className="upload-sub">or use camera to take photo</div>
+          <div className="upload-text">Tap to upload business card images</div>
+          <div className="upload-sub">You can upload up to {MAX_IMAGES} images</div>
         </label>
       )}
 
+      {imageFiles.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+            {imageFiles.map((file, index) => (
+              <div key={index} style={{ position: 'relative', width: '150px', height: '150px' }}>
+                <img 
+                  src={imageUrls[index]} 
+                  alt={`Preview ${index + 1}`}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover', 
+                    borderRadius: '8px',
+                    border: '2px solid rgba(96,165,250,0.3)'
+                  }}
+                />
+                <button
+                  onClick={() => removeImage(index)}
+                  style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    background: 'rgba(239,68,68,0.9)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'white'
+                  }}
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          {imageFiles.length < MAX_IMAGES && (
+            <label className="btn" style={{ marginBottom: '12px' }}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={onPickImages} 
+                multiple
+                hidden 
+                ref={fileInputRef}
+              />
+              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                <FiImage /> Add More Images ({imageFiles.length}/{MAX_IMAGES})
+              </span>
+            </label>
+          )}
+        </div>
+      )}
+
       <div className="actions">
-        <label className="btn">
-          <input type="file" accept="image/*" capture="environment" onChange={onPickImage} hidden />
-          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-            <FiImage /> Upload
-          </span>
-        </label>
+        {imageFiles.length === 0 && (
+          <label className="btn">
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              onChange={onPickImages} 
+              multiple
+              hidden 
+              ref={fileInputRef}
+            />
+            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              <FiImage /> Upload
+            </span>
+          </label>
+        )}
 
         {!isRecording ? (
           <button className="btn" onClick={onRecord}>
@@ -164,12 +308,6 @@ export default function BusinessCard({ activeExhibition }) {
             </span>
           </button>
         )}
-
-        {/* <button className="btn" onClick={handleOcr} disabled={!imageFile}>
-          <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-            <FiCpu /> OCR
-          </span>
-        </button> */}
       </div>
 
       {isRecording && (
@@ -194,28 +332,138 @@ export default function BusinessCard({ activeExhibition }) {
         </div>
       )}
 
-      {imageFile && (
-        <img className="preview" alt="preview" src={imageUrl} />
-      )}
-
       <div className="table">
-        {FORM_FIELDS.map((field) => (
-          <div className="row" key={field}>
-            <label className="label" htmlFor={`f-${field}`}>{field}</label>
-            <input
-              id={`f-${field}`}
-              className="input"
-              placeholder={`Enter ${field}`}
-              value={fields[field] || ''}
-              onChange={(e) => handleChange(field, e.target.value)}
-            />
+        <div className="row">
+          <label className="label" htmlFor="companyName">Company Name</label>
+          <input
+            id="companyName"
+            className="input"
+            placeholder="Enter company name"
+            value={fields.companyName || ''}
+            onChange={(e) => handleChange('companyName', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="contactPerson">Contact Person</label>
+          <input
+            id="contactPerson"
+            className="input"
+            placeholder="Enter contact person name"
+            value={fields.contactPerson || ''}
+            onChange={(e) => handleChange('contactPerson', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="designation">Designation</label>
+          <input
+            id="designation"
+            className="input"
+            placeholder="Enter designation"
+            value={fields.designation || ''}
+            onChange={(e) => handleChange('designation', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="mobile">Mobile</label>
+          <input
+            id="mobile"
+            className="input"
+            placeholder="Enter mobile number"
+            value={fields.mobile || ''}
+            onChange={(e) => handleChange('mobile', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            className="input"
+            placeholder="Enter email address"
+            value={fields.email || ''}
+            onChange={(e) => handleChange('email', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="address">Address</label>
+          <textarea
+            id="address"
+            className="input multiline"
+            placeholder="Enter address"
+            value={fields.address || ''}
+            onChange={(e) => handleChange('address', e.target.value)}
+            rows={3}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="website">Website</label>
+          <input
+            id="website"
+            type="url"
+            className="input"
+            placeholder="Enter website URL"
+            value={fields.website || ''}
+            onChange={(e) => handleChange('website', e.target.value)}
+          />
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="typeOfVisitor">Type of Visitor</label>
+          <select
+            id="typeOfVisitor"
+            className="input"
+            value={fields.typeOfVisitor || ''}
+            onChange={(e) => handleChange('typeOfVisitor', e.target.value)}
+          >
+            {TYPE_OF_VISITOR_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="row">
+          <label className="label">Interested Products</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {INTERESTED_PRODUCTS_OPTIONS.map(product => (
+              <label key={product.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={(fields.interestedProducts || []).includes(product.value)}
+                  onChange={() => handleProductToggle(product.value)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span>{product.label}</span>
+              </label>
+            ))}
           </div>
-        ))}
+        </div>
+
+        <div className="row">
+          <label className="label" htmlFor="remarks">Remarks</label>
+          <textarea
+            id="remarks"
+            className="input multiline"
+            placeholder="Enter any remarks or notes"
+            value={fields.remarks || ''}
+            onChange={(e) => handleChange('remarks', e.target.value)}
+            rows={4}
+          />
+        </div>
       </div>
 
-      <button className="primary" onClick={handleSave} disabled={loading.save || (activeExhibition && !isLive)}>Save Card</button>
+      <button 
+        className="primary" 
+        onClick={handleSave} 
+        disabled={loading.save || (activeExhibition && !isLive)}
+      >
+        {loading.save ? 'Saving...' : 'Save Card'}
+      </button>
     </div>
   );
 }
-
-

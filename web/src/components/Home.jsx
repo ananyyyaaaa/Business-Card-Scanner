@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { FiPlus, FiCopy } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiPlus, FiCopy, FiStar } from 'react-icons/fi';
 import { deleteExhibition } from '../services/api.js';
 import { listExhibitions, createExhibition, getLiveExhibitions } from '../services/api.js';
 import timezones from '../timezones.json'; // Assuming you have a timezones.json file
@@ -35,6 +36,7 @@ const toUtcISOString = (value, timezone) => {
 };
 
 export default function Home({ setActiveExhibition, setTab, userName }) {
+  const navigate = useNavigate();
   const [exhibitions, setExhibitions] = useState([]);
   const [live, setLive] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -46,12 +48,19 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
     endTime: '',
     timezone: '',
     country: '',
+    locationType: 'DOMESTIC',
+    venue: '',
+    organizationDetails: '',
+    organizerContactPerson: '',
+    organizerEmail: '',
+    organizerMobile: '',
     createdBy: userName || '',
   });
   const [viewing, setViewing] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'duplicate'
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { exhibition: {...}, id: '...' } or null
 
   const buildEmptyForm = () => ({
     name: '',
@@ -59,6 +68,12 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
     endTime: '',
     timezone: '',
     country: '',
+    locationType: 'DOMESTIC',
+    venue: '',
+    organizationDetails: '',
+    organizerContactPerson: '',
+    organizerEmail: '',
+    organizerMobile: '',
     createdBy: userName || '',
   });
 
@@ -183,6 +198,12 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
       endTime: formatDateForInput(exhibition.endTime),
       timezone: exhibition.timezone || '',
       country: exhibition.country || '',
+      locationType: exhibition.locationType || 'DOMESTIC',
+      venue: exhibition.venue || '',
+      organizationDetails: exhibition.organizationDetails || '',
+      organizerContactPerson: exhibition.organizerContactPerson || '',
+      organizerEmail: exhibition.organizerEmail || '',
+      organizerMobile: exhibition.organizerMobile || '',
       createdBy: userName || exhibition.createdBy || '',
     });
     setModalMode('duplicate');
@@ -212,9 +233,18 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
 
   const requestDelete = async (exhibition) => {
     if (!exhibition) return;
-    const confirmed = window.confirm(`Delete "${exhibition.name}" and all associated cards? This action cannot be undone.`);
-    if (!confirmed) return;
-    await handleDeleteConfirmed(exhibition._id);
+    setDeleteConfirm({ exhibition, id: exhibition._id });
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null);
+  };
+
+  const handleDeleteProceed = async () => {
+    if (deleteConfirm) {
+      await handleDeleteConfirmed(deleteConfirm.id);
+      setDeleteConfirm(null);
+    }
   };
 
   const exhibitionBuckets = useMemo(() => {
@@ -254,11 +284,126 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
     return exhibitionBuckets[selectedNav] || [];
   }, [exhibitionBuckets, selectedNav]);
 
+  const openExhibitionForm = (ex) => {
+    if (!ex?._id) return;
+    navigate(`/exhibition-form/${ex._id}`);
+  };
+
   const statusSummary = [
     { key: 'live', label: 'Live Exhibitions', count: exhibitionBuckets.live.length, tone: 'live' },
     { key: 'upcoming', label: 'Upcoming', count: exhibitionBuckets.upcoming.length, tone: 'upcoming' },
     { key: 'completed', label: 'Completed', count: exhibitionBuckets.completed.length, tone: 'completed' },
   ];
+
+  const renderExhibitionsCards = () => {
+    if (filteredExhibitions.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
+          <p>No {selectedNav} exhibitions found.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="exhibitions-cards-container">
+        {filteredExhibitions.map((ex) => {
+          const isLive = live.find((l) => l._id === ex._id) != null;
+          const country = countries.find(c => c.code === ex.country);
+          const statusText = isLive ? 'Live' : selectedNav === 'upcoming' ? 'Upcoming' : 'Completed';
+          const statusClass = isLive ? 'pill-live' : selectedNav === 'upcoming' ? 'pill-upcoming' : 'pill-completed';
+          
+          return (
+            <div key={ex._id} className="exhibition-card">
+              <div className="exhibition-card-details">
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">NAME</span>
+                  <span className="exhibition-card-value">{ex.name}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">START</span>
+                  <span className="exhibition-card-value">{new Date(ex.startTime).toLocaleString()}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">END</span>
+                  <span className="exhibition-card-value">{new Date(ex.endTime).toLocaleString()}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">TIMEZONE</span>
+                  <span className="exhibition-card-value">{ex.timezone}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">COUNTRY</span>
+                  <span className="exhibition-card-value">
+                    {country && <span className="country-flag" style={{ fontSize: '20px', marginRight: '8px' }}>{country.flag}</span>}
+                    {country ? country.name : ex.country}
+                  </span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">LOCATION</span>
+                  <span className="exhibition-card-value">{ex.locationType || '—'}</span>
+                </div>
+                {ex.venue && (
+                  <div className="exhibition-card-row">
+                    <span className="exhibition-card-label">VENUE</span>
+                    <span className="exhibition-card-value">{ex.venue}</span>
+                  </div>
+                )}
+                {ex.organizationDetails && (
+                  <div className="exhibition-card-row">
+                    <span className="exhibition-card-label">ORG. DETAILS</span>
+                    <span className="exhibition-card-value">{ex.organizationDetails}</span>
+                  </div>
+                )}
+                {(ex.organizerContactPerson || ex.organizerEmail || ex.organizerMobile) && (
+                  <>
+                    {ex.organizerContactPerson && (
+                      <div className="exhibition-card-row">
+                        <span className="exhibition-card-label">CONTACT PERSON</span>
+                        <span className="exhibition-card-value">{ex.organizerContactPerson}</span>
+                      </div>
+                    )}
+                    {ex.organizerEmail && (
+                      <div className="exhibition-card-row">
+                        <span className="exhibition-card-label">EMAIL</span>
+                        <span className="exhibition-card-value">{ex.organizerEmail}</span>
+                      </div>
+                    )}
+                    {ex.organizerMobile && (
+                      <div className="exhibition-card-row">
+                        <span className="exhibition-card-label">MOBILE</span>
+                        <span className="exhibition-card-value">{ex.organizerMobile}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">STATUS</span>
+                  <span className={`pill ${statusClass}`}>{statusText}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">CREATED BY</span>
+                  <span className="exhibition-card-value">{ex.createdBy || '—'}</span>
+                </div>
+              </div>
+              <div className="exhibition-card-actions">
+                <div className="exhibition-card-actions-label">ACTIONS</div>
+                <div className="exhibition-card-actions-buttons">
+                  <button className="btn btn-view" onClick={() => openExhibitionForm(ex)}>
+                    <FiStar /> Form
+                  </button>
+                  <button className="btn btn-view" onClick={() => setViewing(ex)}>View</button>
+                  <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)}>
+                    <FiCopy /> Duplicate
+                  </button>
+                  <button className="btn btn-delete" onClick={() => requestDelete(ex)}>Delete</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderExhibitionsTable = () => {
     if (filteredExhibitions.length === 0) {
@@ -279,6 +424,8 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
               <th style={{ textAlign: 'left', padding: '12px 16px' }}>End Time</th>
               <th style={{ textAlign: 'left', padding: '12px 16px' }}>Timezone</th>
               <th style={{ textAlign: 'left', padding: '12px 16px' }}>Country</th>
+              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Location</th>
+              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Organizer</th>
               <th style={{ textAlign: 'left', padding: '12px 16px' }}>Status</th>
               <th style={{ textAlign: 'left', padding: '12px 16px' }}>Created By</th>
               <th style={{ textAlign: 'right', padding: '12px 16px' }}>Actions</th>
@@ -300,6 +447,21 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                       <span>{country ? country.name : ex.country}</span>
                     </div>
                   </td>
+                  <td data-label="Location" style={{ padding: '16px' }}>
+                    <div style={{ display: 'grid', gap: 4 }}>
+                      <span>{ex.locationType || '—'}</span>
+                      {ex.venue && <span style={{ color: 'var(--muted)', fontSize: 12 }}>{ex.venue}</span>}
+                    </div>
+                  </td>
+                  <td data-label="Organizer" style={{ padding: '16px' }}>
+                    <div style={{ display: 'grid', gap: 4 }}>
+                      {ex.organizationDetails && <span>{ex.organizationDetails}</span>}
+                      {ex.organizerContactPerson && <span>Contact: {ex.organizerContactPerson}</span>}
+                      {ex.organizerEmail && <span>Email: {ex.organizerEmail}</span>}
+                      {ex.organizerMobile && <span>Mobile: {ex.organizerMobile}</span>}
+                      {!ex.organizationDetails && !ex.organizerContactPerson && !ex.organizerEmail && !ex.organizerMobile && <span>—</span>}
+                    </div>
+                  </td>
                   <td data-label="Status" style={{ padding: '16px' }}>
                     <span className={`pill ${isLive ? 'pill-live' : selectedNav === 'upcoming' ? 'pill-upcoming' : 'pill-completed'}`}>
                       {isLive ? 'Live' : selectedNav === 'upcoming' ? 'Upcoming' : 'Completed'}
@@ -308,6 +470,13 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                   <td data-label="Created By" style={{ padding: '16px' }}>{ex.createdBy || '—'}</td>
                   <td data-label="Actions" style={{ padding: '16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn"
+                        title="Open exhibition form"
+                        onClick={(e) => { e.stopPropagation(); openExhibitionForm(ex); }}
+                      >
+                        <FiStar />
+                      </button>
                       <button className="btn" onClick={() => setViewing(ex)}>View</button>
                       <button className="btn" onClick={() => handleOpenDuplicate(ex)}>
                         <FiCopy /> Duplicate
@@ -418,7 +587,25 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
         {error && <div className="msg error">{error}</div>}
         {message.text && <div className={`msg ${message.type}`}>{message.text}</div>}
 
-        {!selectedNav ? renderEmptyState() : renderExhibitionsTable()}
+        {deleteConfirm && (
+          <div className="confirm-modal-overlay" onClick={handleDeleteCancel}>
+            <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>Confirm Deletion</h3>
+              <p>Delete "{deleteConfirm.exhibition?.name}" and all associated cards? This action cannot be undone.</p>
+              <div className="confirm-modal-actions">
+                <button className="btn secondary" onClick={handleDeleteCancel}>Cancel</button>
+                <button className="btn danger" onClick={handleDeleteProceed}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!selectedNav ? renderEmptyState() : (
+          <>
+            <div className="exhibitions-desktop">{renderExhibitionsTable()}</div>
+            <div className="exhibitions-mobile">{renderExhibitionsCards()}</div>
+          </>
+        )}
       </div>
 
       {showCreate && (
@@ -431,7 +618,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
             <div className="modal-body">
               <div className="form-grid">
                 <div className="form-field full">
-                  <label className="label">Name</label>
+                  <label className="label">Name of Exhibition</label>
                   <input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div className="form-field full">
@@ -455,6 +642,60 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                     <option value="">Select Country</option>
                     {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                   </select>
+                </div>
+                <div className="form-field">
+                  <label className="label">Location</label>
+                  <select className="input" value={form.locationType} onChange={(e) => setForm((f) => ({ ...f, locationType: e.target.value }))}>
+                    <option value="DOMESTIC">Domestic</option>
+                    <option value="INTERNATIONAL">International</option>
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label className="label">Venue</label>
+                  <input
+                    className="input"
+                    placeholder="Exhibition venue"
+                    value={form.venue}
+                    onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
+                  />
+                </div>
+                <div className="form-field full">
+                  <label className="label">Organization Details</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="Organizer details, booth info, etc."
+                    value={form.organizationDetails}
+                    onChange={(e) => setForm((f) => ({ ...f, organizationDetails: e.target.value }))}
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="label">Contact Person</label>
+                  <input
+                    className="input"
+                    value={form.organizerContactPerson}
+                    onChange={(e) => setForm((f) => ({ ...f, organizerContactPerson: e.target.value }))}
+                    placeholder="Organizer name"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="label">Contact Email</label>
+                  <input
+                    type="email"
+                    className="input"
+                    value={form.organizerEmail}
+                    onChange={(e) => setForm((f) => ({ ...f, organizerEmail: e.target.value }))}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="label">Mobile Number</label>
+                  <input
+                    className="input"
+                    value={form.organizerMobile}
+                    onChange={(e) => setForm((f) => ({ ...f, organizerMobile: e.target.value }))}
+                    placeholder="+1 555 123 4567"
+                  />
                 </div>
                 <div className="form-field full">
                   <label className="label">Created By</label>
@@ -490,6 +731,12 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                 <div><strong>End Time:</strong> {new Date(viewing.endTime).toLocaleString()}</div>
                 <div><strong>Timezone:</strong> {viewing.timezone}</div>
                 <div><strong>Country:</strong> {viewing.country}</div>
+                {viewing.locationType && <div><strong>Location:</strong> {viewing.locationType}</div>}
+                {viewing.venue && <div><strong>Venue:</strong> {viewing.venue}</div>}
+                {viewing.organizationDetails && <div><strong>Org. Details:</strong> {viewing.organizationDetails}</div>}
+                {viewing.organizerContactPerson && <div><strong>Contact Person:</strong> {viewing.organizerContactPerson}</div>}
+                {viewing.organizerEmail && <div><strong>Email:</strong> {viewing.organizerEmail}</div>}
+                {viewing.organizerMobile && <div><strong>Mobile:</strong> {viewing.organizerMobile}</div>}
                 <div><strong>Created By:</strong> {viewing.createdBy || '—'}</div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
                   <button className="primary" onClick={() => {

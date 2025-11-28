@@ -4,6 +4,7 @@ import { FiCamera, FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import BusinessCard from './components/BusinessCard.jsx';
 import Home from './components/Home.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import ExhibitionForm from './components/ExhibitionForm.jsx';
 import Login from './components/Login.jsx';
 import Signup from './components/Signup.jsx';
 import AdminLogin from './components/AdminLogin.jsx';
@@ -263,6 +264,11 @@ export default function App() {
           } />
           <Route path="/admin/login" element={<AdminLogin onLogin={handleAdminLogin} />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/exhibition-form/:id?" element={
+            <PrivateRoute>
+              <ExhibitionForm />
+            </PrivateRoute>
+          } />
         </Routes>
       </main>
       <footer className="footer">© {new Date().getFullYear()} BizCard</footer>

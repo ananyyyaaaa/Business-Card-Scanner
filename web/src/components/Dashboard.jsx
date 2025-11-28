@@ -64,10 +64,34 @@ export default function Dashboard({ activeExhibition }) {
     return () => clearInterval(interval);
   }, [activeExhibition]);
 
+  const TYPE_OF_VISITOR_OPTIONS = [
+    '',
+    'ENDUSER',
+    'DEALER',
+    'CONSULTANT',
+    'DOMESTIC',
+    'INTERNATIONAL',
+  ];
+
+  const INTERESTED_PRODUCTS_OPTIONS = [
+    'LAB GLASSWARE',
+    'PLASTICWARE',
+    'FILTERATION',
+    'INSTRUMENTS',
+    'HYDROMETERS',
+    'THERMOMETERS',
+  ];
+
   const getEditableSnapshot = (card) => {
     const snapshot = {};
     allFields.forEach((field) => {
-      snapshot[field] = card.fields?.[field] ?? card[field] ?? '';
+      const value = card.fields?.[field] ?? card[field] ?? '';
+      // Handle array fields
+      if (field === 'interestedProducts') {
+        snapshot[field] = Array.isArray(value) ? value : (value ? [value] : []);
+      } else {
+        snapshot[field] = value;
+      }
     });
     return snapshot;
   };
@@ -121,16 +145,213 @@ export default function Dashboard({ activeExhibition }) {
     if (editingId === card._id) {
       return editingFields[field] ?? '';
     }
-    // Check both card.fields and direct card properties for OCR extracted data
-    return card.fields?.[field] || card[field] || '';
+    const value = card.fields?.[field] || card[field] || '';
+    if (field === 'interestedProducts') {
+      return Array.isArray(value) ? value : value ? [value] : [];
+    }
+    return value;
   };
 
-  const allFields = ['name', 'email', 'phone', 'address', 'company', 'website'];
+  const formatFieldLabel = (field) => {
+    const labels = {
+      companyName: 'COMPANY NAME',
+      contactPerson: 'CONTACT PERSON',
+      designation: 'DESIGNATION',
+      mobile: 'MOBILE',
+      email: 'EMAIL',
+      address: 'ADDRESS',
+      website: 'WEBSITE',
+      typeOfVisitor: 'TYPE OF VISITOR',
+      interestedProducts: 'INTERESTED PRODUCTS',
+      remarks: 'REMARKS'
+    };
+    return labels[field] || field.toUpperCase();
+  };
+
+  const allFields = [
+    'companyName', 
+    'contactPerson', 
+    'designation', 
+    'mobile', 
+    'email', 
+    'address', 
+    'website',
+    'typeOfVisitor',
+    'interestedProducts',
+    'remarks'
+  ];
+  
+  // Legacy fields for backward compatibility
+  const legacyFields = ['name', 'phone', 'company'];
+
+  const renderCardsCards = () => {
+    if (cards.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
+          <p>No cards found. Scan a card to get started!</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="exhibitions-cards-container">
+        {cards.map((card) => {
+          const isEditing = editingId === card._id;
+          return (
+            <div key={card._id} className={`exhibition-card ${isEditing ? 'editing' : ''}`}>
+              <div className="exhibition-card-details">
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">IMAGES</span>
+                  <span className="exhibition-card-value">
+                    {card.images && card.images.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {card.images.slice(0, 5).map((img, idx) => (
+                          <img 
+                            key={idx}
+                            src={img} 
+                            alt={`Card ${idx + 1}`} 
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                          />
+                        ))}
+                      </div>
+                    ) : card.image ? (
+                      <img 
+                        src={card.image} 
+                        alt={card.contactPerson || card.name || 'card'} 
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
+                      />
+                    ) : (
+                      <div style={{ width: '80px', height: '80px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+                        No Image
+                      </div>
+                    )}
+                  </span>
+                </div>
+                {allFields.map(field => {
+                  const value = getFieldValue(card, field);
+                  const isArrayField = field === 'interestedProducts';
+                  const isVisitorField = field === 'typeOfVisitor';
+                  return (
+                    <div key={field} className="exhibition-card-row">
+                      <span className="exhibition-card-label">{formatFieldLabel(field)}</span>
+                      <span className="exhibition-card-value">
+                        {isEditing ? (
+                          isArrayField ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {INTERESTED_PRODUCTS_OPTIONS.map(product => (
+                                <label key={product} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(editingFields[field] || []).includes(product)}
+                                    onChange={(e) => {
+                                      const current = editingFields[field] || [];
+                                      const updated = e.target.checked 
+                                        ? [...current, product]
+                                        : current.filter(p => p !== product);
+                                      handleFieldChange(field, updated);
+                                    }}
+                                  />
+                                  {product}
+                                </label>
+                              ))}
+                            </div>
+                          ) : isVisitorField ? (
+                            <select
+                              className="input"
+                              value={editingFields[field] || ''}
+                              onChange={(e) => handleFieldChange(field, e.target.value)}
+                            >
+                              {TYPE_OF_VISITOR_OPTIONS.map(option => (
+                                <option key={option} value={option}>
+                                  {option || 'Select Type'}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={field === 'email' ? 'email' : field === 'website' ? 'url' : 'text'}
+                              className="input"
+                              value={editingFields[field] ?? value}
+                              onChange={(e) => handleFieldChange(field, e.target.value)}
+                              style={{ width: '100%', padding: '8px' }}
+                              placeholder={`Enter ${formatFieldLabel(field)}`}
+                            />
+                          )
+                        ) : (
+                          <span>
+                            {isArrayField ? (value?.length ? value.join(', ') : '—') : (value || '—')}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">DATE</span>
+                  <span className="exhibition-card-value">{new Date(card.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="exhibition-card-row">
+                  <span className="exhibition-card-label">AUDIO</span>
+                  <span className="exhibition-card-value">
+                    {card.audio ? (
+                      <span className="pill pill-rec" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        <FiMic /> REC
+                      </span>
+                    ) : (
+                      <span className="pill pill-muted">No REC</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="exhibition-card-actions">
+                <div className="exhibition-card-actions-label">ACTIONS</div>
+                <div className="exhibition-card-actions-buttons">
+                  {isEditing ? (
+                    <>
+                      <button 
+                        className="btn btn-view" 
+                        onClick={() => handleSave(card._id)} 
+                        disabled={saving}
+                      >
+                        <FiSave /> {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button 
+                        className="btn btn-delete" 
+                        onClick={handleCancelEdit}
+                        disabled={saving}
+                      >
+                        <FiX /> Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        className="btn btn-view" 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(card); }}
+                      >
+                        <FiEdit2 /> Edit
+                      </button>
+                      <button 
+                        className="btn btn-duplicate" 
+                        onClick={(e) => { e.stopPropagation(); setSelected(card); }}
+                      >
+                        View
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="dash">
       <div className="dash-header">
-        <h2>Dashboard</h2>
+        <h2>Dashboard-{activeExhibition?.name}</h2>
         <p className="muted">All saved cards - Click Edit to modify details</p>
       </div>
       {exhibitionEnded && (
@@ -147,119 +368,180 @@ export default function Dashboard({ activeExhibition }) {
           <p>No cards found. Scan a card to get started!</p>
         </div>
       ) : (
-        <div className="exhibitions-panel table table-scroll" style={{ padding: 0, marginTop: '20px' }}>
-          <table className="exhibitions-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Image</th>
-                {allFields.map(field => (
-                  <th key={field} style={{ textAlign: 'left', padding: '12px 16px', textTransform: 'capitalize' }}>
-                    {field}
-                  </th>
-                ))}
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Date</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Audio</th>
-                <th style={{ textAlign: 'right', padding: '12px 16px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cards.map((card) => {
-                const isEditing = editingId === card._id;
-                return (
-                  <tr
-                    key={card._id}
-                    className={isEditing ? 'editing' : ''}
-                    onClick={(e) => {
-                      if (isEditing) return;
-                      if (e.target.closest('.action-cell')) return;
-                      setSelected(card);
-                    }}
-                    style={{ cursor: isEditing ? 'default' : 'pointer' }}
-                  >
-                    <td style={{ padding: '16px' }}>
-                      {card.image ? (
-                        <img 
-                          src={card.image} 
-                          alt={card.fields?.name || 'card'} 
-                          style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
-                        />
-                      ) : (
-                        <div style={{ width: '60px', height: '60px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
-                          No Image
-                        </div>
-                      )}
-                    </td>
+        <>
+          <div className="exhibitions-desktop">
+            <div className="exhibitions-panel table table-scroll" style={{ padding: 0, marginTop: '20px' }}>
+              <table className="exhibitions-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Images</th>
                     {allFields.map(field => (
-                      <td key={field} style={{ padding: '16px' }}>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            className="input"
-                            value={getFieldValue(card, field)}
-                            onChange={(e) => handleFieldChange(field, e.target.value)}
-                            style={{ width: '100%', minWidth: '150px', padding: '8px' }}
-                            placeholder={`Enter ${field}`}
-                          />
-                        ) : (
-                          <span>{getFieldValue(card, field) || '—'}</span>
-                        )}
-                      </td>
+                      <th key={field} style={{ textAlign: 'left', padding: '12px 16px', textTransform: 'capitalize' }}>
+                        {formatFieldLabel(field)}
+                      </th>
                     ))}
-                    <td style={{ padding: '16px' }}>
-                      {new Date(card.createdAt).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      {card.audio ? (
-                        <span className="pill pill-rec" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                          <FiMic /> REC
-                        </span>
-                      ) : (
-                        <span className="pill pill-muted">No REC</span>
-                      )}
-                    </td>
-                    <td className="action-cell" style={{ padding: '16px', textAlign: 'right' }}>
-                      {isEditing ? (
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button 
-                            className="btn" 
-                            onClick={() => handleSave(card._id)} 
-                            disabled={saving}
-                            style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.2))', borderColor: '#22c55e' }}
-                          >
-                            <FiSave /> {saving ? 'Saving...' : 'Save'}
-                          </button>
-                          <button 
-                            className="btn danger" 
-                            onClick={handleCancelEdit}
-                            disabled={saving}
-                          >
-                            <FiX /> Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          <button 
-                            className="btn" 
-                            onClick={(e) => { e.stopPropagation(); handleEdit(card); }}
-                            style={{ background: 'linear-gradient(135deg, rgba(96,165,250,0.2), rgba(244,114,182,0.2))' }}
-                          >
-                            <FiEdit2 /> Edit
-                          </button>
-                          <button 
-                            className="btn" 
-                            onClick={(e) => { e.stopPropagation(); setSelected(card); }}
-                          >
-                            View
-                          </button>
-                        </div>
-                      )}
-                    </td>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Date</th>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Audio</th>
+                    <th style={{ textAlign: 'right', padding: '12px 16px' }}>Actions</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {cards.map((card) => {
+                    const isEditing = editingId === card._id;
+                    return (
+                      <tr
+                        key={card._id}
+                        className={isEditing ? 'editing' : ''}
+                        onClick={(e) => {
+                          if (isEditing) return;
+                          if (e.target.closest('.action-cell')) return;
+                          setSelected(card);
+                        }}
+                        style={{ cursor: isEditing ? 'default' : 'pointer' }}
+                      >
+                        <td style={{ padding: '16px' }}>
+                          {card.images && card.images.length > 0 ? (
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {card.images.slice(0, 3).map((img, idx) => (
+                                <img 
+                                  key={idx}
+                                  src={img} 
+                                  alt={`Card ${idx + 1}`} 
+                                  style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px' }}
+                                />
+                              ))}
+                              {card.images.length > 3 && (
+                                <div style={{ width: '50px', height: '50px', background: 'var(--panel)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '10px' }}>
+                                  +{card.images.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          ) : card.image ? (
+                            <img 
+                              src={card.image} 
+                              alt={card.contactPerson || card.name || 'card'} 
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                            />
+                          ) : (
+                            <div style={{ width: '60px', height: '60px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+                              No Image
+                            </div>
+                          )}
+                        </td>
+                        {allFields.map(field => {
+                          const value = getFieldValue(card, field);
+                          const isArrayField = field === 'interestedProducts';
+                          const isVisitorField = field === 'typeOfVisitor';
+                          return (
+                            <td key={field} style={{ padding: '16px' }}>
+                              {isEditing ? (
+                                isArrayField ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '200px' }}>
+                                    {INTERESTED_PRODUCTS_OPTIONS.map(product => (
+                                      <label key={product} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={(editingFields[field] || []).includes(product)}
+                                          onChange={(e) => {
+                                            const current = editingFields[field] || [];
+                                            const updated = e.target.checked 
+                                              ? [...current, product]
+                                              : current.filter(p => p !== product);
+                                            handleFieldChange(field, updated);
+                                          }}
+                                        />
+                                        {product}
+                                      </label>
+                                    ))}
+                                  </div>
+                                ) : isVisitorField ? (
+                                  <select
+                                    className="input"
+                                    value={editingFields[field] || ''}
+                                    onChange={(e) => handleFieldChange(field, e.target.value)}
+                                  >
+                                    {TYPE_OF_VISITOR_OPTIONS.map(option => (
+                                      <option key={option} value={option}>
+                                        {option || 'Select Type'}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type={field === 'email' ? 'email' : field === 'website' ? 'url' : 'text'}
+                                    className="input"
+                                    value={editingFields[field] ?? value}
+                                    onChange={(e) => handleFieldChange(field, e.target.value)}
+                                    style={{ width: '100%', minWidth: '150px', padding: '8px' }}
+                                    placeholder={`Enter ${formatFieldLabel(field)}`}
+                                  />
+                                )
+                              ) : (
+                                <span>
+                                  {isArrayField ? (value?.length ? value.join(', ') : '—') : (value || '—')}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td style={{ padding: '16px' }}>
+                          {new Date(card.createdAt).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          {card.audio ? (
+                            <span className="pill pill-rec" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                              <FiMic /> REC
+                            </span>
+                          ) : (
+                            <span className="pill pill-muted">No REC</span>
+                          )}
+                        </td>
+                        <td className="action-cell" style={{ padding: '16px', textAlign: 'right' }}>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button 
+                                className="btn" 
+                                onClick={() => handleSave(card._id)} 
+                                disabled={saving}
+                                style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.2))', borderColor: '#22c55e' }}
+                              >
+                                <FiSave /> {saving ? 'Saving...' : 'Save'}
+                              </button>
+                              <button 
+                                className="btn danger" 
+                                onClick={handleCancelEdit}
+                                disabled={saving}
+                              >
+                                <FiX /> Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                              <button 
+                                className="btn" 
+                                onClick={(e) => { e.stopPropagation(); handleEdit(card); }}
+                                style={{ background: 'linear-gradient(135deg, rgba(96,165,250,0.2), rgba(244,114,182,0.2))' }}
+                              >
+                                <FiEdit2 /> Edit
+                              </button>
+                              <button 
+                                className="btn" 
+                                onClick={(e) => { e.stopPropagation(); setSelected(card); }}
+                              >
+                                View
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="exhibitions-mobile">{renderCardsCards()}</div>
+        </>
       )}
 
       {selected && (
@@ -271,28 +553,37 @@ export default function Dashboard({ activeExhibition }) {
 
 function DetailModal({ card, onClose }) {
   const created = useMemo(() => new Date(card.createdAt).toLocaleString(), [card.createdAt]);
+  const displayName = card.contactPerson || card.name || card.companyName || 'Unnamed';
+  
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Card details" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
         <div className="modal-header">
-          <h3>{card.name || 'Unnamed'}</h3>
+          <h3>{displayName}</h3>
           <button className="btn" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body">
           <div className="modal-media">
-            {card.image ? (
-              <img src={card.image} alt={card.name || 'card'} />
+            {card.images && card.images.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                {card.images.map((img, idx) => (
+                  <img key={idx} src={img} alt={`Card ${idx + 1}`} style={{ width: '100%', maxWidth: '300px', borderRadius: '8px' }} />
+                ))}
+              </div>
+            ) : card.image ? (
+              <img src={card.image} alt={displayName} />
             ) : (
               <div className="ph">No Image</div>
             )}
           </div>
           <div className="modal-meta">
             <div><strong>Date:</strong> {created}</div>
-            {card.name && <div><strong>Name:</strong> {card.name}</div>}
+            {card.companyName && <div><strong>Company Name:</strong> {card.companyName}</div>}
+            {card.contactPerson && <div><strong>Contact Person:</strong> {card.contactPerson}</div>}
+            {card.designation && <div><strong>Designation:</strong> {card.designation}</div>}
+            {card.mobile && <div><strong>Mobile:</strong> {card.mobile}</div>}
             {card.email && <div><strong>Email:</strong> {card.email}</div>}
-            {card.phone && <div><strong>Phone:</strong> {card.phone}</div>}
             {card.address && <div><strong>Address:</strong> {card.address}</div>}
-            {card.company && <div><strong>Company:</strong> {card.company}</div>}
             {card.website && (
               <div>
                 <strong>Website:</strong>{' '}
@@ -303,6 +594,15 @@ function DetailModal({ card, onClose }) {
                 </a>
               </div>
             )}
+            {card.typeOfVisitor && <div><strong>Type of Visitor:</strong> {card.typeOfVisitor}</div>}
+            {card.interestedProducts && card.interestedProducts.length > 0 && (
+              <div><strong>Interested Products:</strong> {card.interestedProducts.join(', ')}</div>
+            )}
+            {card.remarks && <div><strong>Remarks:</strong> {card.remarks}</div>}
+            {/* Legacy fields for backward compatibility */}
+            {!card.companyName && card.company && <div><strong>Company:</strong> {card.company}</div>}
+            {!card.contactPerson && card.name && <div><strong>Name:</strong> {card.name}</div>}
+            {!card.mobile && card.phone && <div><strong>Phone:</strong> {card.phone}</div>}
             {card.audio ? (
               <div style={{ marginTop: 12 }}>
                 <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

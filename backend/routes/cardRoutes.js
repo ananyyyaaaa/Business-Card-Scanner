@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/save-entry", upload.fields([{ name: "image", maxCount: 1 }, { name: "audio", maxCount: 1 }]), saveEntry);
+router.post("/save-entry", upload.fields([{ name: "image", maxCount: 5 }, { name: "audio", maxCount: 1 }]), saveEntry);
 router.get("/", getAllCards);
 router.put("/:id", updateCardDetails);
 router.post("/extract-ocr", upload.single("image"), extractOCR);

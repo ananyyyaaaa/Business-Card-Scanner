@@ -3,7 +3,8 @@ import Card from "../models/Card.js";
 import Exhibition from '../models/Exhibition.js';
 import path from "path";
 import fs from "fs";
-import runOCR from "../utils/ocr.js";
+// import runOCR from "../utils/ocr.js";
+import { parseBusinessCardImage } from "../utils/geminiClient.js";
 import { parseOCRText } from "../utils/parserService.js";
 
 // const { parseOCRText } = require("../utils/parseOCR");
@@ -12,6 +13,41 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
+const safeUnlink = (filePath) => {
+  fs.unlink(filePath, (err) => {
+    if (err && err.code !== 'ENOENT') {
+      console.warn('Failed to remove temp file:', filePath, err.message);
+    }
+  });
+};
+
+const toStandardFields = (src = {}) => ({
+  companyName: src.companyName || src.company || "",
+  contactPerson: src.contactPerson || src.name || "",
+  designation: src.designation || src.title || "",
+  email: src.email || "",
+  mobile: src.mobile || src.phone || "",
+  website: src.website || "",
+  address: src.address || "",
+  typeOfVisitor: src.typeOfVisitor || "",
+  interestedProducts: Array.isArray(src.interestedProducts) ? src.interestedProducts : [],
+  remarks: src.remarks || (Array.isArray(src.interestedProducts) ? src.interestedProducts.join(", ") : ""),
+});
+
+const hydrateMissingFields = (primary, fallback) => {
+  const merged = { ...primary };
+  Object.keys(fallback).forEach((key) => {
+    const value = merged[key];
+    if (
+      (value === undefined || value === null || value === "" || (Array.isArray(value) && !value.length)) &&
+      fallback[key]
+    ) {
+      merged[key] = fallback[key];
+    }
+  });
+  return merged;
+};
 
 // ---------------- OCR Extraction Route ----------------
 
@@ -25,38 +61,50 @@ export const extractOCR = async (req, res) => {
     }
 
     const imagePath = req.file.path;
-    console.log("Starting OCR for:", imagePath);
+    console.log("Sending image to Gemini:", imagePath);
 
-    // Run OCR using optimized function
-    const extractedText = await runOCR(imagePath);
-    console.log("Extracted Text:", extractedText);
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString("base64");
+    const mimeType = req.file.mimetype || "image/jpeg";
 
-    // Parse fields
-    const parsedData = parseOCRText(extractedText);
+    const { fields, rawText } = await parseBusinessCardImage(base64Image, mimeType);
+    let normalizedFields = toStandardFields(fields);
 
-    // Cleanup temp file
-    if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    if (rawText) {
+      const needsFallback = [
+        normalizedFields.companyName,
+        normalizedFields.contactPerson,
+        normalizedFields.mobile,
+        normalizedFields.address,
+      ].some((v) => !v);
+
+      if (needsFallback) {
+        try {
+          const heuristic = await parseOCRText(rawText);
+          const heuristicFields = toStandardFields(heuristic);
+          normalizedFields = hydrateMissingFields(normalizedFields, heuristicFields);
+        } catch (fallbackError) {
+          console.warn("Heuristic fallback failed:", fallbackError.message);
+        }
+      }
+    }
+
+    if (fs.existsSync(imagePath)) safeUnlink(imagePath);
 
     return res.json({
       success: true,
-      extractedText,
-      fields: {
-        name: parsedData.name || "",
-        email: parsedData.email || "",
-        phone: parsedData.phone || "",
-        website: parsedData.website || "",
-        company: parsedData.company || "",
-        address: parsedData.address || "",
-        extras: parsedData.extras || {}
-      }
-
+      extractedText: rawText || "",
+      fields: normalizedFields
     });
 
   } catch (err) {
     console.error("OCR error:", err.message);
+    if (req.file?.path) {
+      safeUnlink(req.file.path);
+    }
     return res.status(500).json({
       success: false,
-      error: "OCR failed",
+      error: "LLM extraction failed",
       details: err.message
     });
   }
@@ -91,46 +139,74 @@ export const saveEntry = async (req, res) => {
       }
     }
 
-    // Direct fields override JSON fields (optional)
-    fields = {
-      name: req.body.name ?? fields.name ?? "",
+    // New fields structure
+    let interestedProducts = fields.interestedProducts || [];
+    if (req.body.interestedProducts !== undefined) {
+      if (Array.isArray(req.body.interestedProducts)) {
+        interestedProducts = req.body.interestedProducts;
+      } else if (typeof req.body.interestedProducts === 'string' && req.body.interestedProducts.trim()) {
+        try {
+          interestedProducts = JSON.parse(req.body.interestedProducts);
+          if (!Array.isArray(interestedProducts)) {
+            interestedProducts = interestedProducts ? [String(interestedProducts)] : [];
+          }
+        } catch (e) {
+          interestedProducts = req.body.interestedProducts
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      } else {
+        interestedProducts = [];
+      }
+    }
+
+    const newFields = {
+      companyName: req.body.companyName ?? fields.companyName ?? "",
+      contactPerson: req.body.contactPerson ?? fields.contactPerson ?? "",
+      designation: req.body.designation ?? fields.designation ?? "",
+      mobile: req.body.mobile ?? fields.mobile ?? "",
       email: req.body.email ?? fields.email ?? "",
-      phone: req.body.phone ?? fields.phone ?? "",
       address: req.body.address ?? fields.address ?? "",
       website: req.body.website ?? fields.website ?? "",
-      company: req.body.company ?? fields.company ?? "",
-      extras: req.body.extras ?? fields.extras ?? {}
+      typeOfVisitor: req.body.typeOfVisitor ?? fields.typeOfVisitor ?? "",
+      interestedProducts,
+      remarks: req.body.remarks ?? fields.remarks ?? "",
     };
-
+    fields = { ...newFields };
     console.log("Final parsed fields:", fields);
 
     // ---------------- FILE HANDLING ----------------
-    let image = "";
-    let imageMime = "";
+    let images = [];
     let audio = "";
 
     const allFiles = Object.values(req.files || {}).flat();
 
-    const imgFile = allFiles.find(f => f.mimetype.startsWith("image/"));
-    const audFile = allFiles.find(f => f.mimetype.startsWith("audio/"));
-
-    if (imgFile) {
+    // Handle multiple images (up to 5)
+    const imgFiles = allFiles.filter(f => f.mimetype.startsWith("image/")).slice(0, 5);
+    
+    for (const imgFile of imgFiles) {
       const imgPath = path.join(__dirname, "..", "uploads", imgFile.filename);
       const buffer = fs.readFileSync(imgPath);
-      imageMime = imgFile.mimetype;
-      image = `data:${imageMime};base64,${buffer.toString("base64")}`;
-      fs.unlinkSync(imgPath);
+      const imageMime = imgFile.mimetype;
+      const image = `data:${imageMime};base64,${buffer.toString("base64")}`;
+      images.push(image);
+      safeUnlink(imgPath);
     }
 
+    // Handle audio
+    const audFile = allFiles.find(f => f.mimetype.startsWith("audio/"));
     if (audFile) {
       const audPath = path.join(__dirname, "..", "uploads", audFile.filename);
       const buffer = fs.readFileSync(audPath);
       audio = `data:${audFile.mimetype};base64,${buffer.toString("base64")}`;
-      fs.unlinkSync(audPath);
+      safeUnlink(audPath);
     }
 
     // Fallback in case frontend sends base64 directly
-    if (!image && fields.image) image = fields.image;
+    if (images.length === 0 && fields.images && Array.isArray(fields.images)) {
+      images = fields.images;
+    }
     if (!audio && fields.audio) audio = fields.audio;
 
     // ---------------- SAVE TO DB ----------------
@@ -138,8 +214,7 @@ export const saveEntry = async (req, res) => {
       ...fields,
       exhibitionId: req.body.exhibitionId ?? fields.exhibitionId ?? null,
       createdBy: req.body.createdBy ?? fields.createdBy ?? '',
-      image,
-      imageMime,
+      images,
       audio
     });
 
@@ -175,7 +250,10 @@ export const updateCardDetails = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Card ID is required' });
     }
 
-    const allowedFields = ['name', 'email', 'phone', 'address', 'website', 'company', 'extras'];
+    const allowedFields = [
+      'companyName', 'contactPerson', 'designation', 'mobile', 'email', 
+      'address', 'website', 'typeOfVisitor', 'interestedProducts', 'remarks'
+    ];
     const update = {};
 
     allowedFields.forEach((field) => {

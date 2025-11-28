@@ -22,9 +22,21 @@ const getBackendBase = () => {
 const BACKEND_BASE = getBackendBase();
 console.log('🔗 Backend URL:', BACKEND_BASE);
 
-export async function saveCardEntry(imageFile, audioBlob, fields, exhibitionId = null, createdBy = '') {
+export async function saveCardEntry(imageFiles, audioBlob, fields, exhibitionId = null, createdBy = '') {
   const form = new FormData();
-  if (imageFile) form.append('image', imageFile, imageFile.name || 'card.jpg');
+  
+  // Handle multiple images (up to 5)
+  if (imageFiles && Array.isArray(imageFiles)) {
+    imageFiles.forEach((file, index) => {
+      if (file) {
+        form.append('image', file, file.name || `card-${index}.jpg`);
+      }
+    });
+  } else if (imageFiles) {
+    // Backward compatibility: single file
+    form.append('image', imageFiles, imageFiles.name || 'card.jpg');
+  }
+  
   if (audioBlob) form.append('audio', audioBlob, 'audio.webm');
   form.append('fields', JSON.stringify(fields || {}));
   if (exhibitionId) form.append('exhibitionId', exhibitionId);
@@ -71,9 +83,39 @@ export async function getCardsForExhibition(exhibitionId) {
   return res.json();
 }
 
-export async function createExhibition({ name, startTime, endTime, timezone, country, createdBy = '' }) {
+export async function createExhibition({
+  name,
+  startTime,
+  endTime,
+  timezone,
+  country,
+  locationType = '',
+  venue = '',
+  organizationDetails = '',
+  organizerContactPerson = '',
+  organizerEmail = '',
+  organizerMobile = '',
+  createdBy = '',
+}) {
   const url = `${BACKEND_BASE}/api/exhibitions`;
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, startTime, endTime, timezone, country, createdBy }) });
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      startTime,
+      endTime,
+      timezone,
+      country,
+      locationType,
+      venue,
+      organizationDetails,
+      organizerContactPerson,
+      organizerEmail,
+      organizerMobile,
+      createdBy,
+    }),
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Create exhibition error ${res.status}: ${txt}`);
@@ -289,6 +331,40 @@ export async function updateCard(cardId, fields) {
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Update card error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function getExhibitionChecklist(exhibitionId) {
+  const url = `${BACKEND_BASE}/api/exhibitions/${exhibitionId}/checklist`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get checklist error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function updateExhibitionChecklist(exhibitionId, formData) {
+  const url = `${BACKEND_BASE}/api/exhibitions/${exhibitionId}/checklist`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Update checklist error ${res.status}: ${txt}`);
   }
   return res.json();
 }
