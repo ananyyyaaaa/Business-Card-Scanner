@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FiShield, FiLock, FiServer } from 'react-icons/fi';
 import { login } from '../services/api';
 
 const Login = ({ onLogin }) => {
