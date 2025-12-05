@@ -1,13 +1,8 @@
-// const { createWorker } = require("tesseract.js");
 import Card from "../models/Card.js";
 import Exhibition from '../models/Exhibition.js';
 import path from "path";
 import fs from "fs";
-// import runOCR from "../utils/ocr.js";
 import { parseBusinessCardImage } from "../utils/geminiClient.js";
-import { parseOCRText } from "../utils/parserService.js";
-
-// const { parseOCRText } = require("../utils/parseOCR");
 
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
@@ -35,22 +30,6 @@ const toStandardFields = (src = {}) => ({
   remarks: src.remarks || (Array.isArray(src.interestedProducts) ? src.interestedProducts.join(", ") : ""),
 });
 
-const hydrateMissingFields = (primary, fallback) => {
-  const merged = { ...primary };
-  Object.keys(fallback).forEach((key) => {
-    const value = merged[key];
-    if (
-      (value === undefined || value === null || value === "" || (Array.isArray(value) && !value.length)) &&
-      fallback[key]
-    ) {
-      merged[key] = fallback[key];
-    }
-  });
-  return merged;
-};
-
-// ---------------- OCR Extraction Route ----------------
-
 export const extractOCR = async (req, res) => {
   try {
     if (!req.file) {
@@ -61,33 +40,18 @@ export const extractOCR = async (req, res) => {
     }
 
     const imagePath = req.file.path;
-    console.log("Sending image to Gemini:", imagePath);
+    console.log("Sending image to Gemini for extraction:", imagePath);
 
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString("base64");
     const mimeType = req.file.mimetype || "image/jpeg";
 
     const { fields, rawText } = await parseBusinessCardImage(base64Image, mimeType);
-    let normalizedFields = toStandardFields(fields);
+    const normalizedFields = toStandardFields(fields);
 
-    if (rawText) {
-      const needsFallback = [
-        normalizedFields.companyName,
-        normalizedFields.contactPerson,
-        normalizedFields.mobile,
-        normalizedFields.address,
-      ].some((v) => !v);
-
-      if (needsFallback) {
-        try {
-          const heuristic = await parseOCRText(rawText);
-          const heuristicFields = toStandardFields(heuristic);
-          normalizedFields = hydrateMissingFields(normalizedFields, heuristicFields);
-        } catch (fallbackError) {
-          console.warn("Heuristic fallback failed:", fallbackError.message);
-        }
-      }
-    }
+    console.log("\n=== FINAL NORMALIZED FIELDS ===");
+    console.log(JSON.stringify(normalizedFields, null, 2));
+    console.log("===============================\n");
 
     if (fs.existsSync(imagePath)) safeUnlink(imagePath);
 
@@ -98,20 +62,18 @@ export const extractOCR = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("OCR error:", err.message);
+    console.error("Gemini extraction error:", err.message);
     if (req.file?.path) {
       safeUnlink(req.file.path);
     }
     return res.status(500).json({
       success: false,
-      error: "LLM extraction failed",
+      error: "Gemini extraction failed",
       details: err.message
     });
   }
 };
 
-
-// ---------------- Manual save route ----------------
 export const saveEntry = async (req, res) => {
   try {
     const exhibitionId = req.body.exhibitionId ?? req.body.fields?.exhibitionId;
@@ -226,8 +188,6 @@ export const saveEntry = async (req, res) => {
   }
 };
 
-
-// ---------------- Fetch all saved cards ----------------
 export const getAllCards = async (_req, res) => {
   try {
     const { exhibitionId } = _req.query || {};

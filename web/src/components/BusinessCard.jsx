@@ -80,18 +80,18 @@ export default function BusinessCard({ activeExhibition }) {
         const result = await extractOcr(filesToAdd[0]);
         if (result?.success && result.fields) {
           const extracted = result.fields;
-          const services = extracted.extras?.services;
           setFields(prev => ({
             ...prev,
             companyName: extracted.companyName || extracted.company || prev.companyName,
-            contactPerson: extracted.name || prev.contactPerson,
-            designation: extracted.designation || prev.designation,
+            contactPerson: extracted.contactPerson || extracted.name || prev.contactPerson,
+            designation: extracted.designation || extracted.title || prev.designation,
             email: extracted.email || prev.email,
             mobile: extracted.mobile || extracted.phone || prev.mobile,
             address: extracted.address || prev.address,
             website: extracted.website || prev.website,
-            remarks: services?.length ? services.join(', ') : extracted.extras?.raw || prev.remarks,
-            extras: extracted.extras
+            typeOfVisitor: extracted.typeOfVisitor || prev.typeOfVisitor,
+            interestedProducts: Array.isArray(extracted.interestedProducts) ? extracted.interestedProducts : prev.interestedProducts,
+            remarks: extracted.remarks || prev.remarks
           }));
           showMessage('OCR extracted successfully', 'success');
         }
