@@ -1,7 +1,7 @@
 const resolveGeminiConfig = () => {
   const key =
     (process.env.GEMINI_API_KEY || "").trim();
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-pro";
+  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
   const endpoint =
     process.env.GEMINI_ENDPOINT ||
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
@@ -9,23 +9,9 @@ const resolveGeminiConfig = () => {
   return { key, model, endpoint };
 };
 
-const PROMPT = `You are an expert AI specialized in extracting business card information. 
-Carefully analyze the business card image and extract EVERY SINGLE DETAIL visible on the card.
+const PROMPT = `Extract business card information from the image. Return ONLY valid JSON with no markdown, no code blocks, no explanations, no additional text.
 
-Extract ALL information including:
-- Company name (full name, any abbreviations, subsidiaries, divisions)
-- Contact person's FULL name (first, middle, last name - extract everything)
-- Job title/designation (exact title as written)
-- ALL email addresses (if multiple, include all)
-- ALL phone numbers (mobile, landline, fax - include country codes if visible)
-- Website URLs (full URLs, including www if present)
-- Complete address (street number, street name, city, state/province, postal code, country - extract every detail)
-- Any product names, services, or business categories mentioned
-- Any additional notes, taglines, slogans, or remarks
-- Social media handles if present
-- Any other text visible on the card
-
-Return ONLY valid JSON matching this exact schema:
+Required JSON schema:
 {
   "fields": {
     "companyName": "",
@@ -39,21 +25,20 @@ Return ONLY valid JSON matching this exact schema:
     "interestedProducts": [],
     "remarks": ""
   },
-  "extractedText": "All text content extracted verbatim from the card, line by line, preserving original formatting"
+  "extractedText": ""
 }
 
-CRITICAL RULES:
-- Extract EVERY piece of text visible on the card - do not skip ANY information
-- "contactPerson" = the human's full name (not company name)
-- "designation" = the exact job title/position associated with contactPerson
-- For phone numbers: include country code if visible, format as: +[country code][number]
-- For addresses: include complete address with ALL details (street, city, state, postal code, country)
-- For interestedProducts: extract ALL product names, services, or business categories mentioned (as array)
-- For remarks: include taglines, slogans, additional notes, or any other text not fitting other fields
-- "extractedText" should contain ALL text from the card verbatim, line by line
-- Use empty strings/arrays ONLY when information is truly not present
-- Be extremely thorough - extract every single detail you can see
-- Respond with ONLY valid JSON, no markdown, no code blocks, no explanations`;
+Rules:
+- Extract ALL visible text from the card
+- contactPerson = full name of the person
+- designation = job title/position
+- mobile = phone number with country code if visible (format: +[country][number])
+- address = complete address with all details
+- interestedProducts = array of product names/services mentioned
+- remarks = taglines, slogans, additional notes
+- extractedText = all text verbatim, line by line
+- Use empty strings/arrays when information is not present
+- Return ONLY the JSON object, nothing else`;
 
 export async function parseBusinessCardImage(base64Image, mimeType = "image/jpeg") {
   const { key: apiKey, endpoint } = resolveGeminiConfig();
@@ -67,13 +52,36 @@ export async function parseBusinessCardImage(base64Image, mimeType = "image/jpeg
         role: "user",
         parts: [
           { inline_data: { mime_type: mimeType, data: base64Image } },
-          { text: PROMPT }  // text comes second
+          { text: PROMPT }
         ]
       },
     ],
     generationConfig: {
       temperature: 0.1,
       responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          fields: {
+            type: "object",
+            properties: {
+              companyName: { type: "string" },
+              contactPerson: { type: "string" },
+              designation: { type: "string" },
+              email: { type: "string" },
+              mobile: { type: "string" },
+              website: { type: "string" },
+              address: { type: "string" },
+              typeOfVisitor: { type: "string" },
+              interestedProducts: { type: "array", items: { type: "string" } },
+              remarks: { type: "string" }
+            },
+            required: ["companyName", "contactPerson", "designation", "email", "mobile", "website", "address", "typeOfVisitor", "interestedProducts", "remarks"]
+          },
+          extractedText: { type: "string" }
+        },
+        required: ["fields", "extractedText"]
+      },
       topK: 40,
       topP: 0.95,
       maxOutputTokens: 2048,
@@ -117,22 +125,56 @@ export async function parseBusinessCardImage(base64Image, mimeType = "image/jpeg
   console.log(text);
   console.log("===========================\n");
 
+  // Clean and parse JSON response
+  let cleanedText = text.trim();
+  
+  // Remove markdown code blocks if present
+  cleanedText = cleanedText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+  
+  // Remove any leading/trailing non-JSON text
+  const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleanedText = jsonMatch[0];
+  }
+
   // Robust JSON parsing
   let parsed;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(cleanedText);
   } catch (err) {
-    // Try to extract JSON from response if wrapped in markdown or other text
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
+    // Check if JSON is incomplete (common issue)
+    if (err.message.includes("Unexpected end of JSON input") || err.message.includes("end of data")) {
+      // Try to fix incomplete JSON by closing unclosed structures
+      let fixedJson = cleanedText;
+      const openBraces = (fixedJson.match(/\{/g) || []).length;
+      const closeBraces = (fixedJson.match(/\}/g) || []).length;
+      const openBrackets = (fixedJson.match(/\[/g) || []).length;
+      const closeBrackets = (fixedJson.match(/\]/g) || []).length;
+      
+      // Close unclosed brackets first
+      if (openBrackets > closeBrackets) {
+        fixedJson += ']'.repeat(openBrackets - closeBrackets);
+      }
+      
+      // Close unclosed braces
+      if (openBraces > closeBraces) {
+        fixedJson += '}'.repeat(openBraces - closeBraces);
+      }
+      
       try {
-        parsed = JSON.parse(match[0]);
-      } catch (parseErr) {
-        throw new Error(`Failed to parse Gemini JSON: ${parseErr.message}`);
+        parsed = JSON.parse(fixedJson);
+        console.log("Warning: Fixed incomplete JSON response");
+      } catch (fixErr) {
+        throw new Error(`Failed to parse Gemini response: ${err.message}. Response may be truncated. Raw text length: ${text.length} chars`);
       }
     } else {
-      throw new Error(`Failed to parse Gemini response: ${err.message}`);
+      throw new Error(`Failed to parse Gemini response: ${err.message}. Response: ${text.substring(0, 200)}...`);
     }
+  }
+
+  // Validate parsed structure
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`Invalid JSON structure: expected object, got ${typeof parsed}`);
   }
 
   const fields = parsed.fields || parsed;
