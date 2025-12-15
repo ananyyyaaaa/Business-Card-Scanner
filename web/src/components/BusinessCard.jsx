@@ -222,37 +222,17 @@ export default function BusinessCard({ activeExhibition }) {
 
       {imageFiles.length > 0 && (
         <div style={{ marginBottom: '20px', width: '100%', maxWidth: '100%' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px', width: '100%' }}>
+          <div className="image-preview-grid">
             {imageFiles.map((file, index) => (
-              <div key={index} style={{ position: 'relative', width: 'calc(50% - 6px)', minWidth: '120px', maxWidth: '150px', aspectRatio: '1/1' }}>
+              <div key={index} className="image-preview-item">
                 <img 
                   src={imageUrls[index]} 
                   alt={`Preview ${index + 1}`}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'cover', 
-                    borderRadius: '8px',
-                    border: '2px solid rgba(96,165,250,0.3)'
-                  }}
+                  className="image-preview-img"
                 />
                 <button
                   onClick={() => removeImage(index)}
-                  style={{
-                    position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    background: 'rgba(239,68,68,0.9)',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'white'
-                  }}
+                  className="image-preview-remove"
                 >
                   <FiX size={16} />
                 </button>

@@ -46,7 +46,7 @@ const LOGISTICS_FIELDS = [
 
 export default function ExhibitionForm() {
   const { id } = useParams();
-  
+
   const initialState = {
     standNumber: '',
     standType: '',
@@ -199,7 +199,7 @@ export default function ExhibitionForm() {
     setSaving(true);
     try {
       const formData = new FormData();
-      
+
       // Add all text fields to FormData
       const textFields = [
         'standNumber', 'standType', 'dimensions', 'portalLink', 'portalId', 'portalPasscode',
@@ -271,9 +271,9 @@ export default function ExhibitionForm() {
     if (value instanceof File) return value.name;
     if (typeof value === 'string' && value.startsWith('data:')) {
       return field === 'perfInvoice' ? 'Performa Invoice (uploaded)' :
-             field === 'paymentProof' ? 'Payment Proof (uploaded)' :
-             field === 'standDesign' ? 'Stand Design (uploaded)' :
-             field === 'samplesPackingList' ? 'Packing List (uploaded)' : 'PDF (uploaded)';
+        field === 'paymentProof' ? 'Payment Proof (uploaded)' :
+          field === 'standDesign' ? 'Stand Design (uploaded)' :
+            field === 'samplesPackingList' ? 'Packing List (uploaded)' : 'PDF (uploaded)';
     }
     return null;
   };
@@ -416,7 +416,7 @@ export default function ExhibitionForm() {
           </section>
 
           <section className="form-block">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div className="exhibitor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h2>Company Exhibitors</h2>
                 <p className="muted">At least one exhibitor is mandatory. You can add multiple exhibitors.</p>
@@ -433,10 +433,10 @@ export default function ExhibitionForm() {
               )}
             </div>
             {(form.exhibitors || []).map((exhibitor, index) => (
-              <div key={index} className="exhibitor-block" style={{ 
-                border: '1px solid rgba(96,165,250,0.2)', 
-                borderRadius: '12px', 
-                padding: '20px', 
+              <div key={index} className="exhibitor-block" style={{
+                border: '1px solid rgba(96,165,250,0.2)',
+                borderRadius: '12px',
+                padding: '20px',
                 marginBottom: '16px',
                 background: 'rgba(96,165,250,0.05)'
               }}>
