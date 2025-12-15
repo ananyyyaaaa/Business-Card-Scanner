@@ -190,11 +190,11 @@ export default function BusinessCard({ activeExhibition }) {
   return (
     <div className="card-page">
       {activeExhibition ? (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12, wordWrap: 'break-word', maxWidth: '100%' }}>
           <strong>Active Exhibition:</strong> {activeExhibition.name} (Date: {new Date(activeExhibition.startTime).toLocaleDateString()})
         </div>
       ) : (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12, wordWrap: 'break-word', maxWidth: '100%' }}>
           <em>No active exhibition selected. Save will create a standalone card.</em>
         </div>
       )}
@@ -221,10 +221,10 @@ export default function BusinessCard({ activeExhibition }) {
       )}
 
       {imageFiles.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ marginBottom: '20px', width: '100%', maxWidth: '100%' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px', width: '100%' }}>
             {imageFiles.map((file, index) => (
-              <div key={index} style={{ position: 'relative', width: '150px', height: '150px' }}>
+              <div key={index} style={{ position: 'relative', width: 'calc(50% - 6px)', minWidth: '120px', maxWidth: '150px', aspectRatio: '1/1' }}>
                 <img 
                   src={imageUrls[index]} 
                   alt={`Preview ${index + 1}`}
@@ -429,16 +429,16 @@ export default function BusinessCard({ activeExhibition }) {
 
         <div className="row">
           <label className="label">Interested Products</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '100%' }}>
             {INTERESTED_PRODUCTS_OPTIONS.map(product => (
-              <label key={product.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <label key={product.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', wordWrap: 'break-word' }}>
                 <input
                   type="checkbox"
                   checked={(fields.interestedProducts || []).includes(product.value)}
                   onChange={() => handleProductToggle(product.value)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
                 />
-                <span>{product.label}</span>
+                <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{product.label}</span>
               </label>
             ))}
           </div>

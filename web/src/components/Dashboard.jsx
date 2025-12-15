@@ -204,13 +204,13 @@ export default function Dashboard({ activeExhibition }) {
                   <span className="exhibition-card-label">IMAGES</span>
                   <span className="exhibition-card-value">
                     {card.images && card.images.length > 0 ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '100%' }}>
                         {card.images.slice(0, 5).map((img, idx) => (
                           <img 
                             key={idx}
                             src={img} 
                             alt={`Card ${idx + 1}`} 
-                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
                           />
                         ))}
                       </div>
@@ -218,10 +218,10 @@ export default function Dashboard({ activeExhibition }) {
                       <img 
                         src={card.image} 
                         alt={card.contactPerson || card.name || 'card'} 
-                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, maxWidth: '100%' }}
                       />
                     ) : (
-                      <div style={{ width: '80px', height: '80px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+                      <div style={{ width: '80px', height: '80px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px', flexShrink: 0 }}>
                         No Image
                       </div>
                     )}
@@ -260,6 +260,7 @@ export default function Dashboard({ activeExhibition }) {
                               className="input"
                               value={editingFields[field] || ''}
                               onChange={(e) => handleFieldChange(field, e.target.value)}
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                             >
                               {TYPE_OF_VISITOR_OPTIONS.map(option => (
                                 <option key={option} value={option}>
@@ -273,7 +274,7 @@ export default function Dashboard({ activeExhibition }) {
                               className="input"
                               value={editingFields[field] ?? value}
                               onChange={(e) => handleFieldChange(field, e.target.value)}
-                              style={{ width: '100%', padding: '8px' }}
+                              style={{ width: '100%', maxWidth: '100%', padding: '8px', boxSizing: 'border-box' }}
                               placeholder={`Enter ${formatFieldLabel(field)}`}
                             />
                           )
@@ -351,8 +352,8 @@ export default function Dashboard({ activeExhibition }) {
   return (
     <div className="dash">
       <div className="dash-header">
-        <h2>Dashboard-{activeExhibition?.name}</h2>
-        <p className="muted">All saved cards - Click Edit to modify details</p>
+        <h2 style={{ wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '100%' }}>Dashboard-{activeExhibition?.name}</h2>
+        <p className="muted" style={{ wordWrap: 'break-word', maxWidth: '100%' }}>All saved cards - Click Edit to modify details</p>
       </div>
       {exhibitionEnded && (
         <div className="msg info">
@@ -399,19 +400,19 @@ export default function Dashboard({ activeExhibition }) {
                         }}
                         style={{ cursor: isEditing ? 'default' : 'pointer' }}
                       >
-                        <td style={{ padding: '16px' }}>
+                        <td style={{ padding: '16px', minWidth: '100px' }}>
                           {card.images && card.images.length > 0 ? (
-                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '180px' }}>
                               {card.images.slice(0, 3).map((img, idx) => (
                                 <img 
                                   key={idx}
                                   src={img} 
                                   alt={`Card ${idx + 1}`} 
-                                  style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px' }}
+                                  style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }}
                                 />
                               ))}
                               {card.images.length > 3 && (
-                                <div style={{ width: '50px', height: '50px', background: 'var(--panel)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '10px' }}>
+                                <div style={{ width: '50px', height: '50px', background: 'var(--panel)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '10px', flexShrink: 0 }}>
                                   +{card.images.length - 3}
                                 </div>
                               )}
@@ -420,7 +421,7 @@ export default function Dashboard({ activeExhibition }) {
                             <img 
                               src={card.image} 
                               alt={card.contactPerson || card.name || 'card'} 
-                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', maxWidth: '100%' }}
                             />
                           ) : (
                             <div style={{ width: '60px', height: '60px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
@@ -459,6 +460,7 @@ export default function Dashboard({ activeExhibition }) {
                                     className="input"
                                     value={editingFields[field] || ''}
                                     onChange={(e) => handleFieldChange(field, e.target.value)}
+                                    style={{ width: '100%', minWidth: '150px', maxWidth: '100%', boxSizing: 'border-box' }}
                                   >
                                     {TYPE_OF_VISITOR_OPTIONS.map(option => (
                                       <option key={option} value={option}>
@@ -472,7 +474,7 @@ export default function Dashboard({ activeExhibition }) {
                                     className="input"
                                     value={editingFields[field] ?? value}
                                     onChange={(e) => handleFieldChange(field, e.target.value)}
-                                    style={{ width: '100%', minWidth: '150px', padding: '8px' }}
+                                    style={{ width: '100%', minWidth: '150px', maxWidth: '100%', padding: '8px', boxSizing: 'border-box' }}
                                     placeholder={`Enter ${formatFieldLabel(field)}`}
                                   />
                                 )
@@ -559,24 +561,24 @@ function DetailModal({ card, onClose }) {
     <div className="modal" role="dialog" aria-modal="true" aria-label="Card details" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
         <div className="modal-header">
-          <h3>{displayName}</h3>
+          <h3 style={{ wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '100%' }}>{displayName}</h3>
           <button className="btn" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body">
           <div className="modal-media">
             {card.images && card.images.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
                 {card.images.map((img, idx) => (
-                  <img key={idx} src={img} alt={`Card ${idx + 1}`} style={{ width: '100%', maxWidth: '300px', borderRadius: '8px' }} />
+                  <img key={idx} src={img} alt={`Card ${idx + 1}`} style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', height: 'auto' }} />
                 ))}
               </div>
             ) : card.image ? (
-              <img src={card.image} alt={displayName} />
+              <img src={card.image} alt={displayName} style={{ maxWidth: '100%', height: 'auto' }} />
             ) : (
               <div className="ph">No Image</div>
             )}
           </div>
-          <div className="modal-meta">
+          <div className="modal-meta" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
             <div><strong>Date:</strong> {created}</div>
             {card.companyName && <div><strong>Company Name:</strong> {card.companyName}</div>}
             {card.contactPerson && <div><strong>Contact Person:</strong> {card.contactPerson}</div>}

@@ -13,6 +13,23 @@ import AccessDenied from './components/AccessDenied.jsx';
 import Profile from './components/Profile.jsx';
 import { checkAccess, getCurrentUser } from './services/api.js';
 
+function Layout() {
+  const location = useLocation();
+
+  // pages where header should be hidden
+  const hideHeaderRoutes = ["/login"];
+
+  return (
+    <>
+      {!hideHeaderRoutes.includes(location.pathname) && <Header />}
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </>
+  );
+}
+
 const PrivateRoute = ({ children }) => {
   const [hasAccess, setHasAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -190,6 +207,9 @@ function HeaderNav({ token, handleLogout, activeExhibition, userName }) {
 }
 
 export default function App() {
+    const location = useLocation();
+    const hideHeaderRoutes = ["/login", "/signup", "/admin/login"];
+  
   const [activeExhibition, setActiveExhibition] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [userName, setUserName] = useState(null);
@@ -256,12 +276,20 @@ export default function App() {
 
   return (
     <div className="page">
-      <header className="header gradient-header">
-        <div className="header-inner">
-          <h1><Link to="/">BizCard</Link></h1>
-          <HeaderNav token={token} handleLogout={handleLogout} activeExhibition={activeExhibition} userName={userName} />
-        </div>
-      </header>
+      {!hideHeaderRoutes.includes(location.pathname) && (
+  <header className="header gradient-header">
+    <div className="header-inner">
+      <h1><Link to="/">BizCard</Link></h1>
+      <HeaderNav
+        token={token}
+        handleLogout={handleLogout}
+        activeExhibition={activeExhibition}
+        userName={userName}
+      />
+    </div>
+  </header>
+)}
+
       <main className="container">
         <Routes>
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
@@ -295,7 +323,7 @@ export default function App() {
           } />
         </Routes>
       </main>
-      <footer className="footer">© {new Date().getFullYear()} BizCard</footer>
+      <footer className="footer">© {new Date().getFullYear()} Mirisoft Solutions. All Rights Reserved.</footer>
     </div>
   );
 }

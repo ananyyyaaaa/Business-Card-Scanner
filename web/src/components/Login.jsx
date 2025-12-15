@@ -77,28 +77,6 @@ const Login = ({ onLogin }) => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-info">
-          <div className="auth-badge">
-            <FiShield />
-            Enterprise Access
-          </div>
-          <h1>Welcome back</h1>
-          <p className="muted">
-            Securely manage exhibitions, scan cards and sync data instantly across the dashboard.
-          </p>
-          <ul className="auth-list">
-            <li>
-              <FiLock />
-              IP whitelisting protects every login.
-            </li>
-            <li>
-              <FiServer />
-              Real-time dashboard updates after every scan.
-            </li>
-          </ul>
-          <Link to="/admin/login" className="auth-link">Admin Login</Link>
-        </div>
-
         <div className="auth-form">
           <h2>Sign in to continue</h2>
           <p className="muted">Use your registered email and password</p>
@@ -128,7 +106,7 @@ const Login = ({ onLogin }) => {
             </button>
           </form>
           <p className="auth-footnote">
-            Don't have an account? <Link to="/signup">Sign Up</Link>
+           
           </p>
         </div>
       </div>

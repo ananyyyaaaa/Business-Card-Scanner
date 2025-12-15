@@ -559,9 +559,6 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
         <div className="landing-header">
           <div className="landing-header-copy">
             <h1>Exhibitions</h1>
-            <p className="landing-header-subtitle">
-              Monitor live events, prepare upcoming shows, and review completed exhibitions on any device.
-            </p>
           </div>
           <div className="landing-header-cta">
             <button className="btn" onClick={handleOpenCreate}>
@@ -578,7 +575,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
               className={`status-card status-${card.tone} ${selectedNav === card.key ? 'active' : ''}`}
               onClick={() => setSelectedNav(card.key)}
             >
-              <span className="status-label">{card.label}</span>
+              <span className="status-label-upcoming">{card.label}</span>
               <span className="status-count">{card.count}</span>
             </button>
           ))}
