@@ -388,6 +388,19 @@ auth-card {
     padding: 10px;
   }
 
+  .input-exhibitor {
+    background: #fff;
+    border: 1.5px solid rgba(96, 165, 250, 0.3);
+    border-radius: 10px;
+    padding: 12px;
+    color: #373737;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    width: max-content;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .btn {
     padding: 0 12px;
     /* Restore padding but rely on flex-wrap */
@@ -1806,6 +1819,7 @@ auth-card {
   align-items: center;
   gap: 10px;
   font-size: 14px;
+  color:#364A63
 }
 
 .exhibition-form-card textarea.multiline {

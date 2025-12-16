@@ -416,9 +416,9 @@ export default function BusinessCard({ activeExhibition }) {
                   type="checkbox"
                   checked={(fields.interestedProducts || []).includes(product.value)}
                   onChange={() => handleProductToggle(product.value)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0, color:'#364A63' }}
                 />
-                <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{product.label}</span>
+                <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word', color:'#364a63', fontSize:'9px' }}>{product.label}</span>
               </label>
             ))}
           </div>

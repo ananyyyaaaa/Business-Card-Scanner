@@ -441,7 +441,7 @@ export default function ExhibitionForm() {
                 background: 'rgba(96,165,250,0.05)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', color: '#e0e0e0' }}>Exhibitor {index + 1}</h3>
+                  <h3 style={{ margin: 0, fontSize: '16px', color: '#364a63' }}>Exhibitor {index + 1}</h3>
                   {isEditing && form.exhibitors.length > 1 && (
                     <button
                       type="button"
@@ -459,7 +459,7 @@ export default function ExhibitionForm() {
                       Name <span className="required">*</span>
                     </label>
                     <input
-                      className="input"
+                      className="input-exhibitor"
                       placeholder="Primary attendee"
                       value={exhibitor.name || ''}
                       onChange={(e) => updateExhibitor(index, 'name', e.target.value)}
@@ -469,7 +469,7 @@ export default function ExhibitionForm() {
                   <div className="form-row">
                     <label>Designation</label>
                     <input
-                      className="input"
+                      className="input-exhibitor"
                       placeholder="e.g. Technical Consultant"
                       value={exhibitor.designation || ''}
                       onChange={(e) => updateExhibitor(index, 'designation', e.target.value)}
@@ -479,7 +479,7 @@ export default function ExhibitionForm() {
                   <div className="form-row">
                     <label>Email ID</label>
                     <input
-                      className="input"
+                      className="input-exhibitor"
                       placeholder="name@company.com"
                       value={exhibitor.email || ''}
                       onChange={(e) => updateExhibitor(index, 'email', e.target.value)}
@@ -491,7 +491,7 @@ export default function ExhibitionForm() {
                       Mobile Number <span className="required">*</span>
                     </label>
                     <input
-                      className="input"
+                      className="input-exhibitor"
                       placeholder="+44 (0) 7444 045 025"
                       value={exhibitor.mobile || ''}
                       onChange={(e) => updateExhibitor(index, 'mobile', e.target.value)}
