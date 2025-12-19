@@ -189,6 +189,31 @@ export default function ExhibitionForm() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (field, e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      handleChange(field, null);
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      setMessage({ type: 'error', text: 'Only PDF files are allowed.' });
+      e.target.value = ''; // Reset input
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+    if (file.size > MAX_SIZE) {
+      setMessage({ type: 'error', text: 'File size must be less than 5MB.' });
+      e.target.value = ''; // Reset input
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    handleChange(field, file);
+  };
+
   const handleSave = async () => {
     if (!id) {
       setMessage({ type: 'error', text: 'No exhibition ID found. Please access this form from an exhibition.' });
@@ -343,7 +368,7 @@ export default function ExhibitionForm() {
                 type="file"
                 accept="application/pdf"
                 disabled={!isEditing}
-                onChange={(e) => handleChange('perfInvoice', e.target.files?.[0] || null)}
+                onChange={(e) => handleFileChange('perfInvoice', e)}
               />
               {hasPdf('perfInvoice') && (
                 <span className="muted" style={{ display: 'block', marginTop: '8px' }}>
@@ -357,7 +382,7 @@ export default function ExhibitionForm() {
                 type="file"
                 accept="application/pdf"
                 disabled={!isEditing}
-                onChange={(e) => handleChange('paymentProof', e.target.files?.[0] || null)}
+                onChange={(e) => handleFileChange('paymentProof', e)}
               />
               {hasPdf('paymentProof') && (
                 <span className="muted" style={{ display: 'block', marginTop: '8px' }}>
@@ -554,7 +579,7 @@ export default function ExhibitionForm() {
                 type="file"
                 accept="application/pdf"
                 disabled={!isEditing}
-                onChange={(e) => handleChange('standDesign', e.target.files?.[0] || null)}
+                onChange={(e) => handleFileChange('standDesign', e)}
               />
               {hasPdf('standDesign') && (
                 <span className="muted" style={{ display: 'block', marginTop: '8px' }}>
@@ -613,7 +638,7 @@ export default function ExhibitionForm() {
                 type="file"
                 accept="application/pdf"
                 disabled={!isEditing}
-                onChange={(e) => handleChange('samplesPackingList', e.target.files?.[0] || null)}
+                onChange={(e) => handleFileChange('samplesPackingList', e)}
               />
               {hasPdf('samplesPackingList') && (
                 <span className="muted" style={{ display: 'block', marginTop: '8px' }}>
@@ -651,4 +676,5 @@ export default function ExhibitionForm() {
     </div>
   );
 }
+
 

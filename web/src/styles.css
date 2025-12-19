@@ -760,8 +760,8 @@ auth-card {
 
 .btn.danger {
   border-color: #ef4444;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
-  color: #fca5a5;
+  background: #fff;
+  color: #ef4444;
 }
 
 .btn.danger:hover {
@@ -2181,7 +2181,7 @@ auth-card {
   .confirm-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(f, f, f, 0.75);
     backdrop-filter: blur(8px);
     display: grid;
     place-items: center;
@@ -2192,9 +2192,8 @@ auth-card {
 
   .confirm-modal {
     width: min(480px, 100%);
-    background: linear-gradient(180deg, #0f172a, #0b1220);
-    border: 2px solid rgba(239, 68, 68, 0.3);
-    border-radius: 20px;
+    background: #fff;
+    border-radius: 7px;
     padding: 24px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(239, 68, 68, 0.2);
     animation: slideUp 0.3s ease;
@@ -2209,7 +2208,7 @@ auth-card {
 
   .confirm-modal p {
     margin: 0 0 24px 0;
-    color: #d1d5db;
+    color: #364A63;
     line-height: 1.6;
     font-size: 15px;
   }
@@ -2220,7 +2219,7 @@ auth-card {
     justify-content: flex-end;
   }
 
-  .confirm-modal-actions .btn {
+  .confirm-modal-actions .btn-danger {
     padding: 10px 20px;
     border-radius: 10px;
     font-weight: 600;

@@ -23,6 +23,7 @@ export default function Dashboard({ activeExhibition }) {
   const [editingFields, setEditingFields] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [viewImage, setViewImage] = useState(null);
 
   useEffect(() => {
     if (activeExhibition) {
@@ -169,18 +170,18 @@ export default function Dashboard({ activeExhibition }) {
   };
 
   const allFields = [
-    'companyName', 
-    'contactPerson', 
-    'designation', 
-    'mobile', 
-    'email', 
-    'address', 
+    'companyName',
+    'contactPerson',
+    'designation',
+    'mobile',
+    'email',
+    'address',
     'website',
     'typeOfVisitor',
     'interestedProducts',
     'remarks'
   ];
-  
+
   // Legacy fields for backward compatibility
   const legacyFields = ['name', 'phone', 'company'];
 
@@ -206,19 +207,21 @@ export default function Dashboard({ activeExhibition }) {
                     {card.images && card.images.length > 0 ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxWidth: '100%' }}>
                         {card.images.slice(0, 5).map((img, idx) => (
-                          <img 
+                          <img
                             key={idx}
-                            src={img} 
-                            alt={`Card ${idx + 1}`} 
-                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
+                            src={img}
+                            alt={`Card ${idx + 1}`}
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, cursor: 'pointer' }}
+                            onClick={(e) => { e.stopPropagation(); setViewImage(img); }}
                           />
                         ))}
                       </div>
                     ) : card.image ? (
-                      <img 
-                        src={card.image} 
-                        alt={card.contactPerson || card.name || 'card'} 
-                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, maxWidth: '100%' }}
+                      <img
+                        src={card.image}
+                        alt={card.contactPerson || card.name || 'card'}
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, maxWidth: '100%', cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setViewImage(card.image); }}
                       />
                     ) : (
                       <div style={{ width: '80px', height: '80px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px', flexShrink: 0 }}>
@@ -245,7 +248,7 @@ export default function Dashboard({ activeExhibition }) {
                                     checked={(editingFields[field] || []).includes(product)}
                                     onChange={(e) => {
                                       const current = editingFields[field] || [];
-                                      const updated = e.target.checked 
+                                      const updated = e.target.checked
                                         ? [...current, product]
                                         : current.filter(p => p !== product);
                                       handleFieldChange(field, updated);
@@ -309,15 +312,15 @@ export default function Dashboard({ activeExhibition }) {
                 <div className="exhibition-card-actions-buttons">
                   {isEditing ? (
                     <>
-                      <button 
-                        className="btn btn-view" 
-                        onClick={() => handleSave(card._id)} 
+                      <button
+                        className="btn btn-view"
+                        onClick={() => handleSave(card._id)}
                         disabled={saving}
                       >
                         <FiSave /> {saving ? 'Saving...' : 'Save'}
                       </button>
-                      <button 
-                        className="btn btn-delete" 
+                      <button
+                        className="btn btn-delete"
                         onClick={handleCancelEdit}
                         disabled={saving}
                       >
@@ -326,14 +329,14 @@ export default function Dashboard({ activeExhibition }) {
                     </>
                   ) : (
                     <>
-                      <button 
-                        className="btn btn-view" 
+                      <button
+                        className="btn btn-view"
                         onClick={(e) => { e.stopPropagation(); handleEdit(card); }}
                       >
                         <FiEdit2 /> Edit
                       </button>
-                      <button 
-                        className="btn btn-duplicate" 
+                      <button
+                        className="btn btn-duplicate"
                         onClick={(e) => { e.stopPropagation(); setSelected(card); }}
                       >
                         View
@@ -363,7 +366,7 @@ export default function Dashboard({ activeExhibition }) {
       {message.text && <div className={`msg ${message.type}`}>{message.text}</div>}
       {loading && <div className="loader" aria-busy="true" />}
       {error && <div className="msg error">{error}</div>}
-      
+
       {cards.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
           <p>No cards found. Scan a card to get started!</p>
@@ -404,11 +407,12 @@ export default function Dashboard({ activeExhibition }) {
                           {card.images && card.images.length > 0 ? (
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '180px' }}>
                               {card.images.slice(0, 3).map((img, idx) => (
-                                <img 
+                                <img
                                   key={idx}
-                                  src={img} 
-                                  alt={`Card ${idx + 1}`} 
-                                  style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }}
+                                  src={img}
+                                  alt={`Card ${idx + 1}`}
+                                  style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0, cursor: 'pointer' }}
+                                  onClick={(e) => { e.stopPropagation(); setViewImage(img); }}
                                 />
                               ))}
                               {card.images.length > 3 && (
@@ -418,10 +422,11 @@ export default function Dashboard({ activeExhibition }) {
                               )}
                             </div>
                           ) : card.image ? (
-                            <img 
-                              src={card.image} 
-                              alt={card.contactPerson || card.name || 'card'} 
-                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', maxWidth: '100%' }}
+                            <img
+                              src={card.image}
+                              alt={card.contactPerson || card.name || 'card'}
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', maxWidth: '100%', cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); setViewImage(card.image); }}
                             />
                           ) : (
                             <div style={{ width: '60px', height: '60px', background: 'var(--panel)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '12px' }}>
@@ -445,7 +450,7 @@ export default function Dashboard({ activeExhibition }) {
                                           checked={(editingFields[field] || []).includes(product)}
                                           onChange={(e) => {
                                             const current = editingFields[field] || [];
-                                            const updated = e.target.checked 
+                                            const updated = e.target.checked
                                               ? [...current, product]
                                               : current.filter(p => p !== product);
                                             handleFieldChange(field, updated);
@@ -501,16 +506,16 @@ export default function Dashboard({ activeExhibition }) {
                         <td className="action-cell" style={{ padding: '16px', textAlign: 'right' }}>
                           {isEditing ? (
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <button 
-                                className="btn" 
-                                onClick={() => handleSave(card._id)} 
+                              <button
+                                className="btn"
+                                onClick={() => handleSave(card._id)}
                                 disabled={saving}
                                 style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.2))', borderColor: '#22c55e' }}
                               >
                                 <FiSave /> {saving ? 'Saving...' : 'Save'}
                               </button>
-                              <button 
-                                className="btn danger" 
+                              <button
+                                className="btn danger"
                                 onClick={handleCancelEdit}
                                 disabled={saving}
                               >
@@ -519,15 +524,15 @@ export default function Dashboard({ activeExhibition }) {
                             </div>
                           ) : (
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                              <button 
-                                className="btn" 
+                              <button
+                                className="btn"
                                 onClick={(e) => { e.stopPropagation(); handleEdit(card); }}
                                 style={{ background: 'linear-gradient(135deg, rgba(96,165,250,0.2), rgba(244,114,182,0.2))' }}
                               >
                                 <FiEdit2 /> Edit
                               </button>
-                              <button 
-                                className="btn" 
+                              <button
+                                className="btn"
                                 onClick={(e) => { e.stopPropagation(); setSelected(card); }}
                               >
                                 View
@@ -547,16 +552,20 @@ export default function Dashboard({ activeExhibition }) {
       )}
 
       {selected && (
-        <DetailModal card={selected} onClose={() => setSelected(null)} />)
+        <DetailModal card={selected} onClose={() => setSelected(null)} onViewImage={setViewImage} />)
       }
+
+      {viewImage && (
+        <ImageModal src={viewImage} onClose={() => setViewImage(null)} />
+      )}
     </div>
   );
 }
 
-function DetailModal({ card, onClose }) {
+function DetailModal({ card, onClose, onViewImage }) {
   const created = useMemo(() => new Date(card.createdAt).toLocaleString(), [card.createdAt]);
   const displayName = card.contactPerson || card.name || card.companyName || 'Unnamed';
-  
+
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Card details" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
@@ -569,11 +578,22 @@ function DetailModal({ card, onClose }) {
             {card.images && card.images.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
                 {card.images.map((img, idx) => (
-                  <img key={idx} src={img} alt={`Card ${idx + 1}`} style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', height: 'auto' }} />
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`Card ${idx + 1}`}
+                    style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', height: 'auto', cursor: 'pointer' }}
+                    onClick={() => onViewImage(img)}
+                  />
                 ))}
               </div>
             ) : card.image ? (
-              <img src={card.image} alt={displayName} style={{ maxWidth: '100%', height: 'auto' }} />
+              <img
+                src={card.image}
+                alt={displayName}
+                style={{ maxWidth: '100%', height: 'auto', cursor: 'pointer' }}
+                onClick={() => onViewImage(card.image)}
+              />
             ) : (
               <div className="ph">No Image</div>
             )}
@@ -589,8 +609,8 @@ function DetailModal({ card, onClose }) {
             {card.website && (
               <div>
                 <strong>Website:</strong>{' '}
-                <a href={card.website.startsWith('http') ? card.website : `https://${card.website}`} 
-                  target="_blank" 
+                <a href={card.website.startsWith('http') ? card.website : `https://${card.website}`}
+                  target="_blank"
                   rel="noopener noreferrer">
                   {card.website}
                 </a>
@@ -616,6 +636,52 @@ function DetailModal({ card, onClose }) {
             ) : null}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ImageModal({ src, onClose }) {
+  if (!src) return null;
+  return (
+    <div className="modal" style={{ zIndex: 1100 }} onClick={onClose}>
+      <div
+        style={{ position: 'relative', width: 'auto', height: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: -50,
+            right: 0,
+            background: 'rgba(0,0,0,0.5)',
+            border: 'none',
+            color: 'white',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 1110
+          }}
+        >
+          <FiX size={24} />
+        </button>
+        <img
+          src={src}
+          alt="Full size"
+          style={{
+            maxWidth: '95vw',
+            maxHeight: '90vh',
+            objectFit: 'contain',
+            borderRadius: '8px',
+            display: 'block',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+          }}
+        />
       </div>
     </div>
   );

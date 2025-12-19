@@ -99,6 +99,16 @@ const PrivateRoute = ({ children }) => {
   return children;
 };
 
+const ProtectedAdminRoute = ({ children }) => {
+  const token = localStorage.getItem('adminToken');
+
+  if (!token) {
+    return <Navigate to="/admin/login" />;
+  }
+
+  return children;
+};
+
 function UserDropdown({ userName, handleLogout, navigate }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -129,9 +139,9 @@ function UserDropdown({ userName, handleLogout, navigate }) {
           top: '100%',
           right: 0,
           marginTop: '8px',
-          background: 'linear-gradient(180deg, #0f172a, #0b1220)',
-          border: '1px solid rgba(96,165,250,0.3)',
-          borderRadius: '12px',
+          background: '#fff',
+          border: '#364a63',
+          borderRadius: '7px',
           padding: '8px',
           minWidth: '180px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
@@ -207,9 +217,9 @@ function HeaderNav({ token, handleLogout, activeExhibition, userName }) {
 }
 
 export default function App() {
-    const location = useLocation();
-    const hideHeaderRoutes = ["/login", "/signup", "/admin/login"];
-  
+  const location = useLocation();
+  const hideHeaderRoutes = ["/login", "/signup", "/admin/login"];
+
   const [activeExhibition, setActiveExhibition] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [userName, setUserName] = useState(null);
@@ -277,18 +287,18 @@ export default function App() {
   return (
     <div className="page">
       {!hideHeaderRoutes.includes(location.pathname) && (
-  <header className="header gradient-header">
-    <div className="header-inner">
-      <h1><Link to="/">BizCard</Link></h1>
-      <HeaderNav
-        token={token}
-        handleLogout={handleLogout}
-        activeExhibition={activeExhibition}
-        userName={userName}
-      />
-    </div>
-  </header>
-)}
+        <header className="header gradient-header">
+          <div className="header-inner">
+            <h1><Link to="/">BizCard</Link></h1>
+            <HeaderNav
+              token={token}
+              handleLogout={handleLogout}
+              activeExhibition={activeExhibition}
+              userName={userName}
+            />
+          </div>
+        </header>
+      )}
 
       <main className="container">
         <Routes>
@@ -315,7 +325,11 @@ export default function App() {
             </PrivateRoute>
           } />
           <Route path="/admin/login" element={<AdminLogin onLogin={handleAdminLogin} />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={
+            <ProtectedAdminRoute>
+              <Admin />
+            </ProtectedAdminRoute>
+          } />
           <Route path="/exhibition-form/:id?" element={
             <PrivateRoute>
               <ExhibitionForm />

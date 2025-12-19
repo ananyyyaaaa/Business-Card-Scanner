@@ -14,14 +14,9 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
-    if (!adminToken) {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
 
-  const loadIpRequests = async () => {
+
+  const loadIpRequests =  async () => {
     try {
       const res = await getIpRequests();
       setIpRequests(res?.data || []);
@@ -173,9 +168,9 @@ export default function Admin() {
             </div>
           </div>
           {ipRequests.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '60px 40px', 
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 40px',
               color: 'var(--muted)',
               background: 'linear-gradient(180deg, rgba(96,165,250,0.05), rgba(244,114,182,0.05))',
               borderRadius: '16px',
@@ -210,68 +205,68 @@ export default function Admin() {
                       return new Date(b.createdAt) - new Date(a.createdAt);
                     })
                     .map((request) => {
-                    const isApproved = request.approved === true;
-                    return (
-                      <tr 
-                        key={request._id} 
-                        style={{ 
-                          background: !isApproved ? 'rgba(239,68,68,0.05)' : 'transparent',
-                          borderLeft: !isApproved ? '4px solid #ef4444' : '4px solid transparent'
-                        }}
-                      >
-                        <td style={{ padding: '16px', fontWeight: '600' }}>{request.userName || '—'}</td>
-                        <td style={{ padding: '16px' }}>{request.userEmail || '—'}</td>
-                        <td style={{ padding: '16px', fontFamily: 'monospace', fontSize: '14px' }}>{request.ipAddress || '—'}</td>
-                        <td style={{ padding: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {getCountryFlag(request.countryCode) && (
-                              <span style={{ fontSize: '24px' }}>{getCountryFlag(request.countryCode)}</span>
-                            )}
-                            <span>{getCountryName(request.countryCode)}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px' }}>
-                          <span className={`pill ${isApproved ? 'pill-live' : 'pill-muted'}`}>
-                            {isApproved ? '✓ Approved' : '⏳ Pending'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px', fontSize: '13px', color: 'var(--muted)' }}>
-                          {new Date(request.createdAt).toLocaleString()}
-                        </td>
-                        <td style={{ padding: '16px', textAlign: 'right' }}>
-                          {!isApproved ? (
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <button
-                                className="btn"
-                                onClick={() => handleApprove(request._id, true)}
-                                style={{ 
-                                  background: 'linear-gradient(135deg, rgba(34,197,94,0.25), rgba(22,163,74,0.25))', 
-                                  borderColor: '#22c55e',
-                                  color: '#22c55e',
-                                  fontWeight: '600'
-                                }}
-                              >
-                                <FiCheck style={{ marginRight: '6px' }} />
-                                Approve
-                              </button>
-                              <button
-                                className="btn danger"
-                                onClick={() => handleApprove(request._id, false)}
-                                style={{ fontWeight: '600' }}
-                              >
-                                <FiX style={{ marginRight: '6px' }} />
-                                Reject
-                              </button>
+                      const isApproved = request.approved === true;
+                      return (
+                        <tr
+                          key={request._id}
+                          style={{
+                            background: !isApproved ? 'rgba(239,68,68,0.05)' : 'transparent',
+                            borderLeft: !isApproved ? '4px solid #ef4444' : '4px solid transparent'
+                          }}
+                        >
+                          <td style={{ padding: '16px', fontWeight: '600' }}>{request.userName || '—'}</td>
+                          <td style={{ padding: '16px' }}>{request.userEmail || '—'}</td>
+                          <td style={{ padding: '16px', fontFamily: 'monospace', fontSize: '14px' }}>{request.ipAddress || '—'}</td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              {getCountryFlag(request.countryCode) && (
+                                <span style={{ fontSize: '24px' }}>{getCountryFlag(request.countryCode)}</span>
+                              )}
+                              <span>{getCountryName(request.countryCode)}</span>
                             </div>
-                          ) : (
-                            <span style={{ color: 'var(--muted)', fontSize: '13px' }}>
-                              Approved {request.approvedAt ? new Date(request.approvedAt).toLocaleDateString() : ''}
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <span className={`pill ${isApproved ? 'pill-live' : 'pill-muted'}`}>
+                              {isApproved ? '✓ Approved' : '⏳ Pending'}
                             </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td style={{ padding: '16px', fontSize: '13px', color: 'var(--muted)' }}>
+                            {new Date(request.createdAt).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right' }}>
+                            {!isApproved ? (
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button
+                                  className="btn"
+                                  onClick={() => handleApprove(request._id, true)}
+                                  style={{
+                                    background: 'linear-gradient(135deg, rgba(34,197,94,0.25), rgba(22,163,74,0.25))',
+                                    borderColor: '#22c55e',
+                                    color: '#22c55e',
+                                    fontWeight: '600'
+                                  }}
+                                >
+                                  <FiCheck style={{ marginRight: '6px' }} />
+                                  Approve
+                                </button>
+                                <button
+                                  className="btn danger"
+                                  onClick={() => handleApprove(request._id, false)}
+                                  style={{ fontWeight: '600' }}
+                                >
+                                  <FiX style={{ marginRight: '6px' }} />
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--muted)', fontSize: '13px' }}>
+                                Approved {request.approvedAt ? new Date(request.approvedAt).toLocaleDateString() : ''}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -310,7 +305,7 @@ export default function Admin() {
                     const isUpcoming = startTime > now && !isLive;
                     const isCompleted = endTime < now && !isLive;
                     const country = countries.find(c => c.code === ex.country);
-                    
+
                     return (
                       <tr key={ex._id}>
                         <td style={{ padding: '16px', fontWeight: '600' }}>{ex.name}</td>

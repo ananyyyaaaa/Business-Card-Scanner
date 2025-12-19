@@ -63,13 +63,23 @@ export default function BusinessCard({ activeExhibition }) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    // Validate file types
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const validFiles = files.filter(file => validTypes.includes(file.type));
+
+    if (validFiles.length !== files.length) {
+      showMessage('Only JPEG, JPG, and PNG files are allowed', 'error');
+    }
+
+    if (validFiles.length === 0) return;
+
     const remainingSlots = MAX_IMAGES - imageFiles.length;
     if (remainingSlots <= 0) {
       showMessage(`Maximum ${MAX_IMAGES} images allowed`, 'error');
       return;
     }
 
-    const filesToAdd = files.slice(0, remainingSlots);
+    const filesToAdd = validFiles.slice(0, remainingSlots);
     const newFiles = [...imageFiles, ...filesToAdd];
     setImageFiles(newFiles);
 
@@ -166,7 +176,7 @@ export default function BusinessCard({ activeExhibition }) {
       const result = await saveCardEntry(imageFiles, audioBlob, fields, activeExhibition?._id ?? null, activeExhibition?.createdBy ?? '');
       if (result?.success) {
         showMessage('Card saved successfully!', 'success');
-    setFields({ ...DEFAULT_FIELDS });
+        setFields({ ...DEFAULT_FIELDS });
         setImageFiles([]);
         setAudioBlob(null);
       } else {
@@ -206,12 +216,12 @@ export default function BusinessCard({ activeExhibition }) {
 
       {imageFiles.length === 0 && (
         <label className="upload-box">
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={onPickImages} 
+          <input
+            type="file"
+            accept="image/jpeg, image/png, image/jpg"
+            onChange={onPickImages}
             multiple
-            hidden 
+            hidden
             ref={fileInputRef}
           />
           <div className="upload-icon" aria-hidden><FiUpload size={42} /></div>
@@ -225,8 +235,8 @@ export default function BusinessCard({ activeExhibition }) {
           <div className="image-preview-grid">
             {imageFiles.map((file, index) => (
               <div key={index} className="image-preview-item">
-                <img 
-                  src={imageUrls[index]} 
+                <img
+                  src={imageUrls[index]}
                   alt={`Preview ${index + 1}`}
                   className="image-preview-img"
                 />
@@ -241,12 +251,12 @@ export default function BusinessCard({ activeExhibition }) {
           </div>
           {imageFiles.length < MAX_IMAGES && (
             <label className="btn" style={{ marginBottom: '12px' }}>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={onPickImages} 
+              <input
+                type="file"
+                accept="image/jpeg, image/png, image/jpg"
+                onChange={onPickImages}
                 multiple
-                hidden 
+                hidden
                 ref={fileInputRef}
               />
               <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
@@ -260,13 +270,13 @@ export default function BusinessCard({ activeExhibition }) {
       <div className="actions">
         {imageFiles.length === 0 && (
           <label className="btn">
-            <input 
-              type="file" 
-              accept="image/*" 
-              capture="environment" 
-              onChange={onPickImages} 
+            <input
+              type="file"
+              accept="image/jpeg, image/png, image/jpg"
+              capture="environment"
+              onChange={onPickImages}
               multiple
-              hidden 
+              hidden
               ref={fileInputRef}
             />
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
@@ -416,9 +426,9 @@ export default function BusinessCard({ activeExhibition }) {
                   type="checkbox"
                   checked={(fields.interestedProducts || []).includes(product.value)}
                   onChange={() => handleProductToggle(product.value)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0, color:'#364A63' }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0, color: '#364A63' }}
                 />
-                <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word', color:'#364a63', fontSize:'9px' }}>{product.label}</span>
+                <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word', color: '#364a63', fontSize: '9px' }}>{product.label}</span>
               </label>
             ))}
           </div>
@@ -437,9 +447,9 @@ export default function BusinessCard({ activeExhibition }) {
         </div>
       </div>
 
-      <button 
-        className="primary" 
-        onClick={handleSave} 
+      <button
+        className="primary"
+        onClick={handleSave}
         disabled={loading.save || (activeExhibition && !isLive)}
       >
         {loading.save ? 'Saving...' : 'Save Card'}
