@@ -4,18 +4,18 @@ const getBackendBase = () => {
   if (import.meta.env.VITE_BACKEND_URL) {
     return import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
   }
-  
+
   // Check for window variable (runtime config)
   if (typeof window !== 'undefined' && window.BACKEND_URL) {
     return window.BACKEND_URL.replace(/\/$/, '');
   }
-  
+
   // Default: localhost for development, Render URL for production
   const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
   if (isDevelopment) {
     return 'http://localhost:5000';
   }
-  
+
   return 'https://business-card-scanner-pyrt.onrender.com';
 };
 
@@ -24,7 +24,7 @@ console.log('🔗 Backend URL:', BACKEND_BASE);
 
 export async function saveCardEntry(imageFiles, audioBlob, fields, exhibitionId = null, createdBy = '') {
   const form = new FormData();
-  
+
   // Handle multiple images (up to 5)
   if (imageFiles && Array.isArray(imageFiles)) {
     imageFiles.forEach((file, index) => {
@@ -36,7 +36,7 @@ export async function saveCardEntry(imageFiles, audioBlob, fields, exhibitionId 
     // Backward compatibility: single file
     form.append('image', imageFiles, imageFiles.name || 'card.jpg');
   }
-  
+
   if (audioBlob) form.append('audio', audioBlob, 'audio.webm');
   form.append('fields', JSON.stringify(fields || {}));
   if (exhibitionId) form.append('exhibitionId', exhibitionId);
@@ -221,7 +221,7 @@ export async function login(email, password, otp = null) {
   const body = { email, password };
   // OTP removed from request body - can be re-enabled later
   // if (otp) body.otp = otp;
-  
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -239,7 +239,7 @@ export async function checkAccess() {
   const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -256,7 +256,7 @@ export async function getCurrentUser() {
   const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -287,7 +287,7 @@ export async function getIpRequests() {
   const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -304,7 +304,7 @@ export async function approveIpRequest(requestId, approved) {
   const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -322,7 +322,7 @@ export async function updateCard(cardId, fields) {
   const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -340,7 +340,7 @@ export async function getExhibitionChecklist(exhibitionId) {
   const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
@@ -357,7 +357,7 @@ export async function updateExhibitionChecklist(exhibitionId, formData) {
   const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 
+    headers: {
       'Authorization': token ? `Bearer ${token}` : ''
     },
     body: formData,
@@ -365,6 +365,108 @@ export async function updateExhibitionChecklist(exhibitionId, formData) {
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Update checklist error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function exportAllExhibitions() {
+  const url = `${BACKEND_BASE}/api/admin/export/exhibitions`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Export exhibitions error ${res.status}: ${txt}`);
+  }
+  return res.blob();
+}
+
+export async function exportExhibitionCards(exhibitionId) {
+  const url = `${BACKEND_BASE}/api/admin/export/exhibitions/${exhibitionId}/cards`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Export cards error ${res.status}: ${txt}`);
+  }
+  return res.blob();
+}
+
+export async function getUsers() {
+  const url = `${BACKEND_BASE}/api/admin/users`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get users error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function createUser(userData) {
+  const url = `${BACKEND_BASE}/api/admin/users`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Create user error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function updateUser(id, userData) {
+  const url = `${BACKEND_BASE}/api/admin/users/${id}`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Update user error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function deleteUser(id) {
+  const url = `${BACKEND_BASE}/api/admin/users/${id}`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Delete user error ${res.status}: ${txt}`);
   }
   return res.json();
 }

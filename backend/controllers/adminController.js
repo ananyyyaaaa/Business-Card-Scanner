@@ -98,5 +98,313 @@ const approveIpRequest = async (req, res) => {
   }
 };
 
-export { adminLogin, getIpRequests, approveIpRequest };
+import Exhibition from '../models/Exhibition.js';
+import Card from '../models/Card.js';
+
+// ... (existing imports)
+
+// Helper to escape CSV fields
+const escapeCsv = (field) => {
+  if (field === null || field === undefined) return '';
+  const stringField = String(field);
+  if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+    return `"${stringField.replace(/"/g, '""')}"`;
+  }
+  return stringField;
+};
+
+// @desc    Export all exhibitions to CSV
+// @route   GET /api/admin/export/exhibitions
+// @access  Private (Admin)
+const exportExhibitions = async (req, res) => {
+  try {
+    const exhibitions = await Exhibition.find().sort({ startTime: -1 });
+
+    const headers = [
+      'Name',
+      'Start Time',
+      'End Time',
+      'Timezone',
+      'Country',
+      'Stand Number',
+      'Stand Type',
+      'Dimensions',
+      'Portal Link',
+      'Portal ID',
+      'Portal Passcode',
+      'Exhibitor Name',
+      'Exhibitor Email',
+      'Exhibitor Mobile',
+      'Accommodation Details',
+      'Tickets Details',
+      'Contractor Company',
+      'Contractor Person',
+      'Contractor Email',
+      'Contractor Mobile',
+      'Contractor Quote',
+      'Contractor Advance',
+      'Contractor Balance',
+      'Logistics Company',
+      'Logistics Contact',
+      'Logistics Email',
+      'Logistics Mobile',
+      'Logistics Quote',
+      'Logistics Payment',
+      'Logistics AWB',
+      'Logistics Samples',
+      'Created By',
+      'Created At'
+    ];
+
+    let csv = headers.join(',') + '\n';
+
+    exhibitions.forEach(ex => {
+      // Handle exhibitors array - take the first one or fall back to legacy fields
+      let mainExhibitor = {};
+      if (ex.exhibitors && ex.exhibitors.length > 0) {
+        mainExhibitor = ex.exhibitors[0];
+      } else {
+        mainExhibitor = {
+          name: ex.exhibitorName,
+          email: ex.exhibitorEmail,
+          mobile: ex.exhibitorMobile
+        };
+      }
+
+      const row = [
+        escapeCsv(ex.name),
+        escapeCsv(ex.startTime ? new Date(ex.startTime).toLocaleDateString() : ''),
+        escapeCsv(ex.endTime ? new Date(ex.endTime).toLocaleDateString() : ''),
+        escapeCsv(ex.timezone),
+        escapeCsv(ex.country),
+        escapeCsv(ex.standNumber),
+        escapeCsv(ex.standType),
+        escapeCsv(ex.dimensions),
+        escapeCsv(ex.portalLink),
+        escapeCsv(ex.portalId),
+        escapeCsv(ex.portalPasscode),
+        escapeCsv(mainExhibitor.name),
+        escapeCsv(mainExhibitor.email),
+        escapeCsv(mainExhibitor.mobile),
+        escapeCsv(ex.accommodationDetails),
+        escapeCsv(ex.ticketsDetails),
+        escapeCsv(ex.contractorCompany),
+        escapeCsv(ex.contractorPerson),
+        escapeCsv(ex.contractorEmail),
+        escapeCsv(ex.contractorMobile),
+        escapeCsv(ex.contractorQuote),
+        escapeCsv(ex.contractorAdvance),
+        escapeCsv(ex.contractorBalance),
+        escapeCsv(ex.logisticsCompany),
+        escapeCsv(ex.logisticsContact),
+        escapeCsv(ex.logisticsEmail),
+        escapeCsv(ex.logisticsMobile),
+        escapeCsv(ex.logisticsQuote),
+        escapeCsv(ex.logisticsPayment),
+        escapeCsv(ex.logisticsAwb),
+        escapeCsv(ex.logisticsSamples),
+        escapeCsv(ex.createdBy),
+        escapeCsv(ex.createdAt ? new Date(ex.createdAt).toLocaleString() : '')
+      ];
+      csv += row.join(',') + '\n';
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', 'attachment; filename="exhibitions.csv"');
+    res.send(csv);
+
+  } catch (error) {
+    console.error('Export exhibitions error:', error);
+    res.status(500).json({ message: 'Server error exporting exhibitions' });
+  }
+};
+
+// @desc    Export cards for an exhibition to CSV
+// @route   GET /api/admin/export/exhibitions/:id/cards
+// @access  Private (Admin)
+const exportExhibitionCards = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const exhibition = await Exhibition.findById(id);
+
+    if (!exhibition) {
+      return res.status(404).json({ message: 'Exhibition not found' });
+    }
+
+    const cards = await Card.find({ exhibitionId: id }).sort({ createdAt: -1 });
+
+    const headers = [
+      'Company Name',
+      'Contact Person',
+      'Designation',
+      'Mobile',
+      'Email',
+      'Address',
+      'Website',
+      'Type Of Visitor',
+      'Interested Products',
+      'Remarks',
+      'Scanned At'
+    ];
+
+    let csv = headers.join(',') + '\n';
+
+    cards.forEach(card => {
+      const row = [
+        escapeCsv(card.companyName),
+        escapeCsv(card.contactPerson),
+        escapeCsv(card.designation),
+        escapeCsv(card.mobile),
+        escapeCsv(card.email),
+        escapeCsv(card.address),
+        escapeCsv(card.website),
+        escapeCsv(card.typeOfVisitor),
+        escapeCsv(card.interestedProducts ? card.interestedProducts.join('; ') : ''),
+        escapeCsv(card.remarks),
+        escapeCsv(card.createdAt ? new Date(card.createdAt).toLocaleString() : '')
+      ];
+      csv += row.join(',') + '\n';
+    });
+
+    const filename = `cards-${exhibition.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.csv`;
+
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+
+  } catch (error) {
+    console.error('Export cards error:', error);
+    res.status(500).json({ message: 'Server error exporting cards' });
+  }
+};
+
+// @desc    Get all users
+// @route   GET /api/admin/users
+// @access  Private (Admin)
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Create a new user (Admin)
+// @route   POST /api/admin/users
+// @access  Private (Admin)
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      isEmailVerified: true, // Auto-verify if admin creates
+    });
+
+    if (user) {
+      res.status(201).json({
+        success: true,
+        data: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+    } else {
+      res.status(400).json({ message: 'Invalid user data' });
+    }
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Update user (Admin)
+// @route   PUT /api/admin/users/:id
+// @access  Private (Admin)
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+      },
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Delete user (Admin)
+// @route   DELETE /api/admin/users/:id
+// @access  Private (Admin)
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await user.deleteOne();
+
+    res.json({
+      success: true,
+      message: 'User removed',
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export {
+  adminLogin,
+  getIpRequests,
+  approveIpRequest,
+  exportExhibitions,
+  exportExhibitionCards,
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser
+};
 
