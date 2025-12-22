@@ -282,6 +282,41 @@ export async function adminLogin(email, password) {
   return res.json();
 }
 
+export async function getAdminProfile() {
+  const url = `${BACKEND_BASE}/api/admin/me`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get admin profile error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function updateAdminProfile(data) {
+  const url = `${BACKEND_BASE}/api/admin/me`;
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Update profile error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
 export async function getIpRequests() {
   const url = `${BACKEND_BASE}/api/admin/ip-requests`;
   const token = localStorage.getItem('adminToken');

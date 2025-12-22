@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { listExhibitions, getLiveExhibitions } from '../services/api.js';
+import { listExhibitions, getLiveExhibitions, getAdminProfile, updateAdminProfile } from '../services/api.js';
 import countries from '../countries.json';
+import { FiCheck, FiAlertCircle, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function Profile({ userName }) {
   const [exhibitions, setExhibitions] = useState([]);
@@ -8,11 +9,23 @@ export default function Profile({ userName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const isAdmin = !!localStorage.getItem('adminToken');
+
+  // Admin Profile State
+  const [adminProfile, setAdminProfile] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
+
   const loadExhibitions = async () => {
     try {
       const res = await listExhibitions();
       const allExhibitions = res?.data || [];
-      // Filter exhibitions created by this user
       const userExhibitions = allExhibitions.filter(ex => ex.createdBy === userName);
       setExhibitions(userExhibitions);
     } catch (e) {
@@ -21,6 +34,28 @@ export default function Profile({ userName }) {
   };
 
   useEffect(() => {
+    if (isAdmin) {
+      (async () => {
+        setLoading(true);
+        try {
+          const res = await getAdminProfile();
+          if (res.success) {
+            setAdminProfile(res.data);
+            setFormData({
+              name: res.data.name || '',
+              email: res.data.email || '',
+              password: ''
+            });
+          }
+        } catch (e) {
+          setError(e.message || 'Failed to load admin profile');
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+
     (async () => {
       setLoading(true);
       await loadExhibitions();
@@ -32,9 +67,8 @@ export default function Profile({ userName }) {
       }
       setLoading(false);
     })();
-  }, [userName]);
+  }, [userName, isAdmin]);
 
-  // Sort exhibitions: live first, then by start time
   const sortedExhibitions = useMemo(() => {
     return [...exhibitions].sort((a, b) => {
       const aIsLive = live.find((l) => l._id === a._id) != null;
@@ -45,10 +79,199 @@ export default function Profile({ userName }) {
     });
   }, [exhibitions, live]);
 
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const updateData = {
+        name: formData.name,
+        email: formData.email
+      };
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+
+      const res = await updateAdminProfile(updateData);
+      if (res.success) {
+        setSuccessMessage('Profile updated successfully');
+        setAdminProfile(res.data);
+        setFormData({
+          name: res.data.name,
+          email: res.data.email,
+          password: ''
+        });
+        setIsEditing(false);
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to update profile');
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setError('');
+    setSuccessMessage('');
+    // Reset form to current profile
+    if (adminProfile) {
+      setFormData({
+        name: adminProfile.name || '',
+        email: adminProfile.email || '',
+        password: ''
+      });
+    }
+  };
+
+  // Styles for Outlined Input
+  const inputGroupStyle = {
+    position: 'relative',
+    marginBottom: '24px'
+  };
+
+  const labelStyle = {
+    position: 'absolute',
+    top: '-10px',
+    left: '12px',
+    backgroundColor: '#fff',
+    padding: '0 6px',
+    fontSize: '12px',
+    color: '#6b7280',
+    fontWeight: '500',
+    pointerEvents: 'none'
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '15px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    color: '#1f2937',
+    backgroundColor: isEditing ? '#fff' : '#f9fafb' // Light gray when read-only
+  };
+
   if (loading) {
     return (
       <div className="container" style={{ textAlign: 'center', padding: '40px' }}>
         <div className="loader" />
+      </div>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <div className="dash" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '40px', minHeight: '90vh' }}>
+        <div className="profile-card" style={{ width: '100%', maxWidth: '480px', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '24px', fontWeight: '700', color: '#111827' }}>
+            Profile Details
+          </h2>
+
+          {successMessage && (
+            <div style={{
+              background: '#ecfdf5',
+              color: '#047857',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px'
+            }}>
+              <FiCheck size={16} /> {successMessage}
+            </div>
+          )}
+
+          {error && (
+            <div style={{
+              background: '#fef2f2',
+              color: '#b91c1c',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px'
+            }}>
+              <FiAlertCircle size={16} /> {error}
+            </div>
+          )}
+
+          <form onSubmit={handleUpdate}>
+            {/* Name Field */}
+            <div style={inputGroupStyle}>
+              <label style={{ ...labelStyle, color: '#6366f1' }}>Name</label>
+              <input
+                style={{ ...inputStyle, borderColor: isEditing ? '#6366f1' : '#e5e7eb' }}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Your Name"
+                readOnly={!isEditing}
+              />
+            </div>
+
+            {/* Email Field */}
+            <div style={inputGroupStyle}>
+              <label style={{ ...labelStyle, color: '#6366f1' }}>E-mail</label>
+              <input
+                style={{ ...inputStyle, borderColor: isEditing ? '#6366f1' : '#e5e7eb' }}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="example@email.com"
+                type="email"
+                readOnly={!isEditing}
+              />
+            </div>
+
+            {/* Password Field */}
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Password</label>
+              <input
+                style={{ ...inputStyle, borderColor: isEditing ? '#d1d5db' : '#e5e7eb' }} // Neutral border unless active
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder={isEditing ? "New Password (optional)" : "••••••••"}
+                type="password"
+                readOnly={!isEditing}
+              />
+            </div>
+
+            <div style={{ marginTop: '32px' }}>
+              {!isEditing ? (
+                <button
+                  type="button"
+                  className="btn primary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+                  onClick={() => setIsEditing(true)}
+                >
+                  <FiEdit2 style={{ marginRight: '8px' }} /> Edit Profile
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    type="submit"
+                    className="btn primary"
+                    style={{ flex: 1, justifyContent: 'center', padding: '12px' }}
+                  >
+                    <FiSave style={{ marginRight: '8px' }} /> Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ flex: 1, justifyContent: 'center', padding: '12px' }}
+                    onClick={handleCancel}
+                  >
+                    <FiX style={{ marginRight: '8px' }} /> Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
@@ -65,9 +288,9 @@ export default function Profile({ userName }) {
       {error && <div className="msg error">{error}</div>}
 
       {sortedExhibitions.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '60px 40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 40px',
           color: 'var(--muted)',
           background: 'linear-gradient(180deg, rgba(96,165,250,0.05), rgba(244,114,182,0.05))',
           borderRadius: '16px',
@@ -101,7 +324,7 @@ export default function Profile({ userName }) {
                 const isUpcoming = startTime > now && !isLive;
                 const isCompleted = endTime < now && !isLive;
                 const country = countries.find(c => c.code === ex.country);
-                
+
                 return (
                   <tr key={ex._id}>
                     <td style={{ padding: '16px', fontWeight: '600' }}>{ex.name}</td>
@@ -129,5 +352,3 @@ export default function Profile({ userName }) {
     </div>
   );
 }
-
-

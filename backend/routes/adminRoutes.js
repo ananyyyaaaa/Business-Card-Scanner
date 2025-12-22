@@ -1,6 +1,8 @@
 import express from 'express';
 import {
     adminLogin,
+    getAdminProfile,
+    updateAdminProfile,
     getIpRequests,
     approveIpRequest,
     exportExhibitions,
@@ -15,6 +17,8 @@ import { adminProtect } from '../middleware/auth.js';
 const router = express.Router();
 
 router.post('/login', adminLogin);
+router.get('/me', adminProtect, getAdminProfile);
+router.put('/me', adminProtect, updateAdminProfile);
 router.get('/ip-requests', adminProtect, getIpRequests);
 router.put('/ip-requests/:id', adminProtect, approveIpRequest);
 router.get('/export/exhibitions', adminProtect, exportExhibitions);

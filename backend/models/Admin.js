@@ -8,6 +8,10 @@ const adminSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
+  name: {
+    type: String,
+    default: 'Admin',
+  },
   password: {
     type: String,
     required: true,

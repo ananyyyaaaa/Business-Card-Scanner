@@ -34,9 +34,18 @@ const PrivateRoute = ({ children }) => {
   const [hasAccess, setHasAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem('token');
+  const adminToken = localStorage.getItem('adminToken');
 
   useEffect(() => {
     let mounted = true;
+
+    // If admin, grant access immediately
+    if (adminToken) {
+      setHasAccess(true);
+      setLoading(false);
+      return;
+    }
+
     if (!token) {
       setHasAccess(false);
       setLoading(false);
@@ -61,10 +70,10 @@ const PrivateRoute = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [token, adminToken]);
 
   useEffect(() => {
-    if (!token || loading || hasAccess) return;
+    if (!token || loading || hasAccess || adminToken) return;
     const interval = setInterval(async () => {
       try {
         const res = await checkAccess();
@@ -78,7 +87,7 @@ const PrivateRoute = ({ children }) => {
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [token, hasAccess, loading]);
+  }, [token, hasAccess, loading, adminToken]);
 
   if (loading) {
     return (
@@ -88,11 +97,11 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  if (!token) {
+  if (!token && !adminToken) {
     return <Navigate to="/login" />;
   }
 
-  if (hasAccess === false) {
+  if (hasAccess === false && !adminToken) {
     return <AccessDenied />;
   }
 
@@ -103,13 +112,13 @@ const ProtectedAdminRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
 
   if (!token) {
-    return <Navigate to="/admin/login" />;
+    return <Navigate to="/login" />;
   }
 
   return children;
 };
 
-function UserDropdown({ userName, handleLogout, navigate }) {
+function UserDropdown({ userName, handleLogout, navigate, isAdmin }) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -158,6 +167,21 @@ function UserDropdown({ userName, handleLogout, navigate }) {
             <FiUser style={{ marginRight: '8px' }} />
             View Profile
           </button>
+
+          {isAdmin && (
+            <button
+              className="btn"
+              onClick={() => {
+                navigate('/admin');
+                setIsOpen(false);
+              }}
+              style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '4px' }}
+            >
+              <FiUser style={{ marginRight: '8px' }} />
+              View Admin Panel
+            </button>
+          )}
+
           <button
             className="btn danger"
             onClick={() => {
@@ -180,19 +204,20 @@ function HeaderNav({ token, handleLogout, activeExhibition, userName }) {
   const navigate = useNavigate();
   const showDashboard = location.pathname === '/scan';
   const showScanCard = location.pathname === '/dashboard' && activeExhibition && activeExhibition.isLive;
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const adminToken = localStorage.getItem('adminToken');
+  const isAdmin = !!adminToken;
 
-  if (isAdminRoute) {
-    return (
-      <nav className="nav">
-        <Link to="/admin" className="nav-btn active">Admin</Link>
-      </nav>
-    );
+  // Show standard nav if logged in (user or admin) and not on specific admin pages if we separate them?
+  // Actually, we want persistent nav.
+
+  if (isAdmin && location.pathname.startsWith('/admin') && location.pathname !== '/admin') {
+    // If deep inside admin routes (if any), maybe keep "Admin" link?
+    // But we only have /admin.
   }
 
   return (
     <nav className="nav">
-      {token ? (
+      {token || adminToken ? (
         <>
           <Link to="/" className="nav-btn">Home</Link>
           {showDashboard && <Link to="/dashboard" className="nav-btn">Dashboard</Link>}
@@ -203,7 +228,7 @@ function HeaderNav({ token, handleLogout, activeExhibition, userName }) {
             </Link>
           )}
           {userName && (
-            <UserDropdown userName={userName} handleLogout={handleLogout} navigate={navigate} />
+            <UserDropdown userName={userName} handleLogout={handleLogout} navigate={navigate} isAdmin={isAdmin} />
           )}
         </>
       ) : (
@@ -232,6 +257,8 @@ export default function App() {
   useEffect(() => {
     const loadUserInfo = async () => {
       const currentToken = localStorage.getItem('token');
+      const adminToken = localStorage.getItem('adminToken');
+
       if (currentToken) {
         try {
           const res = await getCurrentUser();
@@ -239,6 +266,8 @@ export default function App() {
         } catch (error) {
           console.error('Failed to load user info:', error);
         }
+      } else if (adminToken) {
+        setUserName('Admin');
       } else {
         setUserName(null);
       }
@@ -249,12 +278,18 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
     setToken(null);
     setUserName(null);
     navigate('/login');
   };
 
-  const handleLogin = async (newToken) => {
+  const handleLogin = async (newToken, role) => {
+    if (role === 'admin') {
+      handleAdminLogin(newToken);
+      return;
+    }
+
     localStorage.setItem('token', newToken);
     setToken(newToken);
     // Load user info
@@ -269,6 +304,7 @@ export default function App() {
       if (res.hasAccess) {
         navigate('/');
       } else {
+        // Even if no access, go to home/dashboard to show pending status
         navigate('/');
       }
     }).catch(() => {
@@ -278,7 +314,8 @@ export default function App() {
 
   const handleAdminLogin = (adminToken) => {
     localStorage.setItem('adminToken', adminToken);
-    navigate('/admin');
+    setUserName('Admin');
+    navigate('/');
   }
   const setTab = (tab) => {
     navigate(`/${tab}`);
@@ -324,7 +361,7 @@ export default function App() {
               <Profile userName={userName} />
             </PrivateRoute>
           } />
-          <Route path="/admin/login" element={<AdminLogin onLogin={handleAdminLogin} />} />
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/admin" element={
             <ProtectedAdminRoute>
               <Admin />

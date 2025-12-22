@@ -42,6 +42,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedNav, setSelectedNav] = useState('live'); // 'live', 'upcoming', 'completed'
+  const isAdmin = !!localStorage.getItem('adminToken');
   const [form, setForm] = useState({
     name: '',
     startTime: '',
@@ -311,7 +312,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
           const country = countries.find(c => c.code === ex.country);
           const statusText = isLive ? 'Live' : selectedNav === 'upcoming' ? 'Upcoming' : 'Completed';
           const statusClass = isLive ? 'pill-live' : selectedNav === 'upcoming' ? 'pill-upcoming' : 'pill-completed';
-          
+
           return (
             <div key={ex._id} className="exhibition-card">
               <div className="exhibition-card-details">
@@ -388,14 +389,20 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
               <div className="exhibition-card-actions">
                 <div className="exhibition-card-actions-label">ACTIONS</div>
                 <div className="exhibition-card-actions-buttons">
-                  <button className="btn btn-view" onClick={() => openExhibitionForm(ex)}>
-                    <FiStar /> Form
-                  </button>
+                  {isAdmin && (
+                    <button className="btn btn-view" onClick={() => openExhibitionForm(ex)}>
+                      <FiStar /> Form
+                    </button>
+                  )}
                   <button className="btn btn-view" onClick={() => setViewing(ex)}>View</button>
-                  <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)}>
-                    <FiCopy /> Duplicate
-                  </button>
-                  <button className="btn btn-delete" onClick={() => requestDelete(ex)}>Delete</button>
+                  {isAdmin && (
+                    <>
+                      <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)}>
+                        <FiCopy /> Duplicate
+                      </button>
+                      <button className="btn btn-delete" onClick={() => requestDelete(ex)}>Delete</button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -470,18 +477,24 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                   <td data-label="Created By" style={{ padding: '16px' }}>{ex.createdBy || '—'}</td>
                   <td data-label="Actions" style={{ padding: '16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      <button
-                        className="btn"
-                        title="Open exhibition form"
-                        onClick={(e) => { e.stopPropagation(); openExhibitionForm(ex); }}
-                      >
-                        <FiStar />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          className="btn"
+                          title="Open exhibition form"
+                          onClick={(e) => { e.stopPropagation(); openExhibitionForm(ex); }}
+                        >
+                          <FiStar />
+                        </button>
+                      )}
                       <button className="btn" onClick={() => setViewing(ex)}>View</button>
-                      <button className="btn" onClick={() => handleOpenDuplicate(ex)}>
-                        <FiCopy /> Duplicate
-                      </button>
-                      <button className="btn danger" onClick={() => requestDelete(ex)}>Delete</button>
+                      {isAdmin && (
+                        <>
+                          <button className="btn" onClick={() => handleOpenDuplicate(ex)}>
+                            <FiCopy /> Duplicate
+                          </button>
+                          <button className="btn danger" onClick={() => requestDelete(ex)}>Delete</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -499,33 +512,41 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
         <div className="empty-state-content">
           <div className="empty-state-image">
             <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="200" rx="20" fill="url(#gradient1)"/>
-              <path d="M100 60L140 100L100 140L60 100L100 60Z" fill="url(#gradient2)" opacity="0.8"/>
-              <circle cx="100" cy="100" r="30" fill="url(#gradient3)"/>
+              <rect width="200" height="200" rx="20" fill="url(#gradient1)" />
+              <path d="M100 60L140 100L100 140L60 100L100 60Z" fill="url(#gradient2)" opacity="0.8" />
+              <circle cx="100" cy="100" r="30" fill="url(#gradient3)" />
               <defs>
                 <linearGradient id="gradient1" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#60a5fa" stopOpacity="0.2"/>
-                  <stop offset="1" stopColor="#f472b6" stopOpacity="0.2"/>
+                  <stop stopColor="#60a5fa" stopOpacity="0.2" />
+                  <stop offset="1" stopColor="#f472b6" stopOpacity="0.2" />
                 </linearGradient>
                 <linearGradient id="gradient2" x1="60" y1="60" x2="140" y2="140" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#60a5fa"/>
-                  <stop offset="1" stopColor="#f472b6"/>
+                  <stop stopColor="#60a5fa" />
+                  <stop offset="1" stopColor="#f472b6" />
                 </linearGradient>
                 <linearGradient id="gradient3" x1="70" y1="70" x2="130" y2="130" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#f472b6"/>
-                  <stop offset="1" stopColor="#60a5fa"/>
+                  <stop stopColor="#f472b6" />
+                  <stop offset="1" stopColor="#60a5fa" />
                 </linearGradient>
               </defs>
             </svg>
           </div>
           <h2 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '24px' }}>Get Started</h2>
           <p style={{ color: 'var(--muted)', marginBottom: '24px', maxWidth: '400px' }}>
-            Create your first exhibition to start scanning business cards and managing your contacts.
+            {isAdmin
+              ? "Create your first exhibition to start scanning business cards and managing your contacts."
+              : "No exhibitions found. Wait for an admin to create one."}
           </p>
-          <button className="primary" onClick={handleOpenCreate} style={{ maxWidth: '250px' }}>
-            <FiPlus style={{ marginRight: '8px' }} />
-            Create Exhibition
-          </button>
+          {isAdmin && (
+            <button
+              className="primary"
+              onClick={handleOpenCreate}
+              style={{ maxWidth: '250px' }}
+            >
+              <FiPlus style={{ marginRight: '8px' }} />
+              Create Exhibition
+            </button>
+          )}
         </div>
       </div>
     );
@@ -535,19 +556,19 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
     <div className="landing-page">
       <div className="landing-sidebar">
         <nav className="sidebar-nav">
-          <button 
+          <button
             className={`sidebar-nav-item ${selectedNav === 'live' ? 'active' : ''}`}
             onClick={() => setSelectedNav('live')}
           >
             Live Exhibitions
           </button>
-          <button 
+          <button
             className={`sidebar-nav-item ${selectedNav === 'upcoming' ? 'active' : ''}`}
             onClick={() => setSelectedNav('upcoming')}
           >
             Upcoming
           </button>
-          <button 
+          <button
             className={`sidebar-nav-item ${selectedNav === 'completed' ? 'active' : ''}`}
             onClick={() => setSelectedNav('completed')}
           >
@@ -561,9 +582,14 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
             <h1>Exhibitions</h1>
           </div>
           <div className="landing-header-cta">
-            <button className="btn" onClick={handleOpenCreate}>
-              <FiPlus /> Create Exhibition
-            </button>
+            {isAdmin && (
+              <button
+                className="btn"
+                onClick={handleOpenCreate}
+              >
+                <FiPlus /> Create Exhibition
+              </button>
+            )}
           </div>
         </div>
 
@@ -696,9 +722,9 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                 </div>
                 <div className="form-field full">
                   <label className="label">Created By</label>
-                  <input 
-                    className="input" 
-                    value={form.createdBy} 
+                  <input
+                    className="input"
+                    value={form.createdBy}
                     onChange={(e) => setForm((f) => ({ ...f, createdBy: e.target.value }))}
                     placeholder="Your name"
                   />
@@ -742,7 +768,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                     setViewing(null);
                     setTab('dashboard');
                   }}>View Dashboard</button>
-                  
+
                   {live.find((l) => l._id === viewing._id) && (
                     <button className="primary" onClick={() => {
                       const isLive = live.find((l) => l._id === viewing._id) != null;

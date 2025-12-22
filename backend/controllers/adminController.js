@@ -31,6 +31,61 @@ const adminLogin = async (req, res) => {
   }
 };
 
+// @desc    Get current admin profile
+// @route   GET /api/admin/me
+// @access  Private (Admin)
+const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password');
+    if (admin) {
+      res.json({
+        success: true,
+        data: admin,
+      });
+    } else {
+      res.status(404).json({ message: 'Admin not found' });
+    }
+  } catch (error) {
+    console.error('Get admin profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Update current admin profile
+// @route   PUT /api/admin/me
+// @access  Private (Admin)
+const updateAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+
+    if (admin) {
+      admin.name = req.body.name || admin.name;
+      admin.email = req.body.email || admin.email;
+
+      if (req.body.password) {
+        const salt = await bcrypt.genSalt(10);
+        admin.password = await bcrypt.hash(req.body.password, salt);
+      }
+
+      const updatedAdmin = await admin.save();
+
+      res.json({
+        success: true,
+        data: {
+          _id: updatedAdmin._id,
+          name: updatedAdmin.name,
+          email: updatedAdmin.email,
+        },
+      });
+    } else {
+      res.status(404).json({ message: 'Admin not found' });
+    }
+  } catch (error) {
+    console.error('Update admin profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // @desc    Get all IP requests
 // @route   GET /api/admin/ip-requests
 // @access  Private (Admin)
@@ -398,6 +453,8 @@ const deleteUser = async (req, res) => {
 
 export {
   adminLogin,
+  getAdminProfile,
+  updateAdminProfile,
   getIpRequests,
   approveIpRequest,
   exportExhibitions,

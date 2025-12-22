@@ -192,7 +192,7 @@ export default function Admin() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    navigate('/admin/login');
+    navigate('/login');
   };
 
   if (loading) {

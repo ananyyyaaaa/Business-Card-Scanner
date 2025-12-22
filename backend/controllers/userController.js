@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 import IpRequest from '../models/IpRequest.js';
 import { generateOtp, isOtpValid } from '../utils/otp.js';
 import { sendOtpEmail } from '../utils/email.js';
@@ -102,7 +103,7 @@ const sendOtp = async (req, res) => {
   } catch (error) {
     console.error('Send OTP error:', error);
     const statusCode = error.message.includes('not configured') ? 500 : 500;
-    res.status(statusCode).json({ 
+    res.status(statusCode).json({
       message: error.message || 'Failed to send OTP',
       error: process.env.NODE_ENV !== 'production' ? error.code : undefined
     });
@@ -163,6 +164,24 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
+
+    // 1. Check if user is an Admin
+    const admin = await Admin.findOne({ email });
+
+    if (admin && (await bcrypt.compare(password, admin.password))) {
+      const token = jwt.sign({ id: admin._id, isAdmin: true }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+      });
+
+      return res.json({
+        success: true,
+        token,
+        role: 'admin',
+        message: 'Admin login successful'
+      });
+    }
+
+    // 2. If not admin, check for regular User
     const user = await User.findOne({ email });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -217,7 +236,7 @@ const loginUser = async (req, res) => {
 
     // Check if IP is already approved in user's approvedIps
     const approvedIp = user.approvedIps.find(ip => ip.ip === clientIp);
-    
+
     // Also check if there's an approved IP request
     const approvedRequest = await IpRequest.findOne({
       userId: user._id,
@@ -246,6 +265,7 @@ const loginUser = async (req, res) => {
         success: true,
         token,
         hasAccess: true,
+        role: 'user',
       });
     }
 
@@ -286,6 +306,7 @@ const loginUser = async (req, res) => {
       success: true,
       token,
       hasAccess: false,
+      role: 'user',
       message: 'Your IP address has been sent for admin approval',
     });
   } catch (error) {
@@ -300,7 +321,7 @@ const loginUser = async (req, res) => {
 const checkAccess = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ hasAccess: false });
     }
