@@ -22,7 +22,7 @@ const Login = ({ onLogin }) => {
       // Login without OTP - IP approval will be handled on backend
       const res = await login(email, password);
       if (res.token) {
-        onLogin(res.token, res.role);
+        onLogin(res.token, res.role, email);
         // Show message if IP is not approved yet
         if (res.message) {
           setMessage(res.message);

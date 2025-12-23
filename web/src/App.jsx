@@ -9,6 +9,7 @@ import Login from './components/Login.jsx';
 import Signup from './components/Signup.jsx';
 import AdminLogin from './components/AdminLogin.jsx';
 import Admin from './components/Admin.jsx';
+import SuperAdminPanel from './components/SuperAdminPanel.jsx';
 import AccessDenied from './components/AccessDenied.jsx';
 import Profile from './components/Profile.jsx';
 import { checkAccess, getCurrentUser } from './services/api.js';
@@ -118,8 +119,20 @@ const ProtectedAdminRoute = ({ children }) => {
   return children;
 };
 
+const ProtectedSuperAdminRoute = ({ children }) => {
+  const token = localStorage.getItem('adminToken');
+  const isSuperAdmin = localStorage.getItem('superAdmin') === 'true';
+
+  if (!token || !isSuperAdmin) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
+
 function UserDropdown({ userName, handleLogout, navigate, isAdmin }) {
   const [isOpen, setIsOpen] = useState(false);
+  const isSuperAdmin = localStorage.getItem('superAdmin') === 'true';
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -168,7 +181,7 @@ function UserDropdown({ userName, handleLogout, navigate, isAdmin }) {
             View Profile
           </button>
 
-          {isAdmin && (
+          {isAdmin && !isSuperAdmin && (
             <button
               className="btn"
               onClick={() => {
@@ -179,6 +192,20 @@ function UserDropdown({ userName, handleLogout, navigate, isAdmin }) {
             >
               <FiUser style={{ marginRight: '8px' }} />
               View Admin Panel
+            </button>
+          )}
+
+          {isSuperAdmin && (
+            <button
+              className="btn"
+              onClick={() => {
+                navigate('/super-admin');
+                setIsOpen(false);
+              }}
+              style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '4px' }}
+            >
+              <FiUser style={{ marginRight: '8px' }} />
+              Super Admin Panel
             </button>
           )}
 
@@ -258,6 +285,7 @@ export default function App() {
     const loadUserInfo = async () => {
       const currentToken = localStorage.getItem('token');
       const adminToken = localStorage.getItem('adminToken');
+      const isSuperAdmin = localStorage.getItem('superAdmin') === 'true';
 
       if (currentToken) {
         try {
@@ -267,7 +295,7 @@ export default function App() {
           console.error('Failed to load user info:', error);
         }
       } else if (adminToken) {
-        setUserName('Admin');
+        setUserName(isSuperAdmin ? 'Super Admin' : 'Admin');
       } else {
         setUserName(null);
       }
@@ -279,14 +307,15 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('superAdmin');
     setToken(null);
     setUserName(null);
     navigate('/login');
   };
 
-  const handleLogin = async (newToken, role) => {
+  const handleLogin = async (newToken, role, email) => {
     if (role === 'admin') {
-      handleAdminLogin(newToken);
+      handleAdminLogin(newToken, email);
       return;
     }
 
@@ -312,10 +341,18 @@ export default function App() {
     });
   }
 
-  const handleAdminLogin = (adminToken) => {
+  const handleAdminLogin = (adminToken, email) => {
     localStorage.setItem('adminToken', adminToken);
-    setUserName('Admin');
-    navigate('/');
+
+    if (email === 'superadmin@bizcard.com') {
+      localStorage.setItem('superAdmin', 'true');
+      setUserName('Super Admin');
+      navigate('/super-admin');
+    } else {
+      localStorage.removeItem('superAdmin');
+      setUserName('Admin');
+      navigate('/admin');
+    }
   }
   const setTab = (tab) => {
     navigate(`/${tab}`);
@@ -367,6 +404,11 @@ export default function App() {
               <Admin />
             </ProtectedAdminRoute>
           } />
+          <Route path="/super-admin" element={
+            <ProtectedSuperAdminRoute>
+              <SuperAdminPanel />
+            </ProtectedSuperAdminRoute>
+          } />
           <Route path="/exhibition-form/:id?" element={
             <PrivateRoute>
               <ExhibitionForm />
@@ -378,4 +420,3 @@ export default function App() {
     </div>
   );
 }
-
