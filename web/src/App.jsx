@@ -363,7 +363,7 @@ export default function App() {
       {!hideHeaderRoutes.includes(location.pathname) && (
         <header className="header gradient-header">
           <div className="header-inner">
-            <h1><Link to="/">BizCard</Link></h1>
+            <h1><Link to="/"><img src="/logo.jpg" alt="Logo" style={{ height: '60px', display: 'block', width: '80px' }} /></Link></h1>
             <HeaderNav
               token={token}
               handleLogout={handleLogout}

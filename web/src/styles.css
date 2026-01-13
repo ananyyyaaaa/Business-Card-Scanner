@@ -117,7 +117,7 @@ auth-card {
 
 .auth-form h2 {
   margin: 0;
-  color: #364A63;
+  color: #36c0cb;
 }
 
 .auth-form-fields {
@@ -191,18 +191,13 @@ auth-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 10px 24px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 24px;
-  letter-spacing: 0.5px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #60a5fa, #f472b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  display: flex;
+  align-items: center;
 }
 
 .header h1 a {
@@ -216,10 +211,10 @@ auth-card {
 }
 
 .nav-btn {
-  background: #854fff;
-  border: #854fff;
+  background: #34c0cb;
+  border: #34c0cb;
   color: #eaeaea;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: 5px;
   cursor: pointer;
   backdrop-filter: blur(8px);
@@ -235,7 +230,7 @@ auth-card {
 }
 
 .nav-btn:hover {
-  background: #7143d9;
+  background: #19cdc7;
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -720,8 +715,8 @@ auth-card {
 
 .btn {
   background: #fff;
-  border: 1.5px solid #3a2272;
-  color: #3a2272;
+  border: 1.5px solid #34c0cb;
+  color: #34c0cb;
   padding: 0 16px;
   border-radius: 12px;
   cursor: pointer;
@@ -744,14 +739,13 @@ auth-card {
 
 .btn svg {
   width: 18px;
-  height: 40px;
+  height: auto;
   flex-shrink: 0;
-  border-radius: 7px;
 }
 
 .btn:hover {
-  border-color: #3a2272;
-  background: #8f75cb;
+  border-color: #34c0cb;
+  background: #c7f6f6;
 }
 
 .btn:active {
@@ -773,7 +767,7 @@ auth-card {
 .primary {
   width: 100%;
   max-width: 100%;
-  background: #854fff;
+  background: #36c0cb;
   border: none;
   padding: 16px;
   border-radius: 7px;
@@ -786,7 +780,7 @@ auth-card {
 }
 
 .primary:hover {
-  background: #7143d9;
+  background: #36c0cb;
 }
 
 .primary:active {
@@ -907,7 +901,7 @@ auth-card {
 
 .label {
   font-weight: 700;
-  color: #364A63;
+  color: #36c0cb;
   font-size: 15px;
   word-wrap: break-word;
 }
@@ -927,7 +921,7 @@ auth-card {
 
 .input:focus {
   outline: none;
-  border-color: #364A63;
+  border-color: #36c0cb;
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 
@@ -1170,7 +1164,7 @@ auth-card {
   color: #8094AE;
   font-weight: 700;
   border-bottom: 2px solid var(--border);
-  padding: 16px 8px 16px 16px;
+  padding: 10px 8px 10px 16px;
   text-align: left;
   font-size: 13px;
   text-transform: uppercase;
@@ -1183,8 +1177,8 @@ auth-card {
 }
 
 .exhibitions-table tbody td {
-  color: #364A63;
-  padding: 16px 12px;
+  color: #36c0cb;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   max-width: 200px;
   word-wrap: break-word;
@@ -1204,7 +1198,7 @@ auth-card {
 }
 
 .exhibitions-table tbody tr:hover td {
-  color: #364A63;
+  color: #36c0cb;
 }
 
 .exhibitions-table td,
@@ -1262,29 +1256,30 @@ auth-card {
 }
 
 .landing-sidebar {
-  background: #fff, rgba(244, 114, 182, 0.12);
-  border-right: 2px solid rgba(96, 165, 250, 0.2);
-  padding: 24px 0;
+  background: #fff;
+  border-right: 2px solid rgba(96, 165, 250, 0.1);
+  padding: 16px 0;
   flex-shrink: 0;
+  width: 220px;
   box-shadow: 0 1px 3px 0 rgba(54, 74, 99, .05);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 0 16px;
+  gap: 4px;
+  padding: 0 12px;
 }
 
 .sidebar-nav-item {
   background: #fff;
   border: none;
-  color: #6e82a5;
-  padding: 14px 14px;
+  color: #36c0cb;
+  padding: 10px 12px;
   text-align: left;
   cursor: pointer;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.3s ease;
   position: relative;
@@ -1294,7 +1289,7 @@ auth-card {
 .sidebar-nav-item.active {
   background: #EBEEF2;
   border: 1.5px;
-  color: #9769ff;
+  color: #36c0cb;
   font-weight: 700;
   font-weight: 14px
 }
@@ -1307,7 +1302,7 @@ auth-card {
   transform: translateY(-50%);
   width: 4px;
   height: 60%;
-  background-color: #9769ff;
+  background-color: #36c0cb;
   border-radius: 0 4px 4px 0;
 }
 
@@ -1320,12 +1315,12 @@ auth-card {
 
 .landing-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid rgba(96, 165, 250, 0.2);
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .landing-header-copy {
@@ -1334,11 +1329,10 @@ auth-card {
 }
 
 .landing-header h1 {
-  margin: 0 0 8px;
-  font-size: 28px;
-  font-weight: 600;
-  background: #fff;
-  color: #364A63;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #36c0cb;
   font-family: DM Sans, sans-serif;
 }
 
@@ -1359,16 +1353,16 @@ auth-card {
 
 .status-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .status-card {
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  border-radius: 16px;
-  padding: 16px 18px;
-  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(96, 165, 250, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #34c0cb;
   color: #f3f4f6;
   text-align: left;
   cursor: pointer;
@@ -1401,12 +1395,12 @@ auth-card {
 }
 
 .status-card.status-live {
-  background: #3a2272;
+  background: #34c0cb;
 }
 
 .status-card.status-upcoming {
   background: #fff;
-  color: #364A63 !important;
+  color: #36c0cb !important;
   font-size: 16.8px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1415,7 +1409,7 @@ auth-card {
 
 .status-card.status-completed {
   background: #fff;
-  color: #364A63 !important;
+  color: #36c0cb !important;
   font-size: 16.8px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1543,7 +1537,7 @@ profile-card {
 }
 
 .muted {
-  color: #364A63;
+  color: #36c0cb;
   font-size: 15px;
   word-wrap: break-word;
 }
@@ -1715,7 +1709,7 @@ profile-card {
   text-transform: uppercase;
   font-size: 15px;
   letter-spacing: 0.2em;
-  color: #364A63;
+  color: #36c0cb;
   margin-bottom: 6px;
 }
 
@@ -1746,7 +1740,7 @@ profile-card {
   font-weight: 500;
   letter-spacing: 0.08em;
   font-size: 15px;
-  color: #364a63;
+  color: #36c0cb;
 }
 
 .exhibition-form-card .form-row .required {
@@ -1823,7 +1817,7 @@ profile-card {
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  color:#364A63
+  color: #36c0cb
 }
 
 .exhibition-form-card textarea.multiline {
@@ -1952,7 +1946,7 @@ profile-card {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  background: #364a63;
+  background: #36c0cb;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1965,7 +1959,7 @@ profile-card {
   gap: 20px;
   padding: 1.25rem;
   overflow-y: auto;
-  color: #364A63;
+  color: #36c0cb;
   background: #fff;
 }
 
@@ -1989,7 +1983,7 @@ profile-card {
 
 .modal-body .label {
   font-weight: 700;
-  color: #364a63;
+  color: #36c0cb;
   font-size: 14px;
 }
 
@@ -1998,7 +1992,7 @@ profile-card {
   border: 1.5px solid rgba(96, 165, 250, 0.3);
   border-radius: 10px;
   padding: 12px;
-  color: #364A63;
+  color: #36c0cb;
   font-size: 14px;
   transition: all 0.3s ease;
 }
@@ -2019,7 +2013,7 @@ profile-card {
 }
 
 .modal-body .primary:hover {
-  background: #7143d9;
+  background: #60a5fa;
 }
 
 .form-grid {
@@ -2122,7 +2116,7 @@ profile-card {
 
   .modal-header h3 {
     font-size: 20px;
-    color: #364A63
+    color: #36c0cb
   }
 
   .modal-body {
@@ -2212,7 +2206,7 @@ profile-card {
 
   .confirm-modal p {
     margin: 0 0 24px 0;
-    color: #364A63;
+    color: #36c0cb;
     line-height: 1.6;
     font-size: 15px;
   }
@@ -2323,7 +2317,7 @@ profile-card {
 
 .exhibition-card.editing {
   background: #fff;
-  border: 1px solid #364A63;
+  border: 1px solid #36c0cb;
 }
 
 .exhibition-card-details {

@@ -78,6 +78,9 @@ const Login = ({ onLogin }) => {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-form">
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <img src="/logo.jpg" alt="Logo" style={{ maxHeight: '60px' }} />
+          </div>
           <h2>Sign in to continue</h2>
           <p className="muted">Use your registered email and password</p>
           {error && <div className="msg error">{error}</div>}

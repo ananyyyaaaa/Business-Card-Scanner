@@ -1,8 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiCopy, FiStar } from 'react-icons/fi';
-import { deleteExhibition } from '../services/api.js';
-import { listExhibitions, createExhibition, getLiveExhibitions } from '../services/api.js';
+import { FiPlus, FiCopy, FiStar, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
+import { deleteExhibition, listExhibitions, createExhibition, getLiveExhibitions, updateExhibition } from '../services/api.js';
 import timezones from '../timezones.json'; // Assuming you have a timezones.json file
 import countries from '../countries.json'; // Assuming you have a countries.json file
 
@@ -60,7 +59,8 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
   const [viewing, setViewing] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [modalMode, setModalMode] = useState('create'); // 'create' | 'duplicate'
+  const [modalMode, setModalMode] = useState('create'); // 'create' | 'duplicate' | 'edit'
+  const [editingExhibition, setEditingExhibition] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { exhibition: {...}, id: '...' } or null
 
   const buildEmptyForm = () => ({
@@ -182,7 +182,32 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
       endTime: endUtc,
     };
 
-    handleCreate(payload);
+    if (modalMode === 'edit' && editingExhibition) {
+      handleUpdate(editingExhibition._id, payload);
+    } else {
+      handleCreate(payload);
+    }
+  };
+
+  const handleUpdate = async (id, payload) => {
+    try {
+      setCreating(true);
+      const res = await updateExhibition(id, payload);
+      if (res?.success) {
+        await refreshAll();
+        setShowCreate(false);
+        setForm(buildEmptyForm());
+        setEditingExhibition(null);
+        setModalMode('create');
+        setMessage({ type: 'success', text: 'Exhibition updated' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message || 'Update failed' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleOpenCreate = () => {
@@ -208,6 +233,27 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
       createdBy: userName || exhibition.createdBy || '',
     });
     setModalMode('duplicate');
+    setShowCreate(true);
+  };
+
+  const handleOpenEdit = (exhibition) => {
+    if (!exhibition) return;
+    setEditingExhibition(exhibition);
+    setForm({
+      name: exhibition.name,
+      startTime: formatDateForInput(exhibition.startTime),
+      endTime: formatDateForInput(exhibition.endTime),
+      timezone: exhibition.timezone || '',
+      country: exhibition.country || '',
+      locationType: exhibition.locationType || 'DOMESTIC',
+      venue: exhibition.venue || '',
+      organizationDetails: exhibition.organizationDetails || '',
+      organizerContactPerson: exhibition.organizerContactPerson || '',
+      organizerEmail: exhibition.organizerEmail || '',
+      organizerMobile: exhibition.organizerMobile || '',
+      createdBy: exhibition.createdBy || userName || '',
+    });
+    setModalMode('edit');
     setShowCreate(true);
   };
 
@@ -390,17 +436,24 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                 <div className="exhibition-card-actions-label">ACTIONS</div>
                 <div className="exhibition-card-actions-buttons">
                   {isAdmin && (
-                    <button className="btn btn-view" onClick={() => openExhibitionForm(ex)}>
-                      <FiStar /> Form
+                    <button className="btn btn-view" onClick={() => openExhibitionForm(ex)} style={{ padding: '0 12px', height: '32px' }}>
+                      Checklist
                     </button>
                   )}
-                  <button className="btn btn-view" onClick={() => setViewing(ex)}>View</button>
+                  <button className="btn btn-view" onClick={() => setViewing(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FiEye />
+                  </button>
                   {isAdmin && (
                     <>
-                      <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)}>
-                        <FiCopy /> Duplicate
+                      <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FiCopy />
                       </button>
-                      <button className="btn btn-delete" onClick={() => requestDelete(ex)}>Delete</button>
+                      <button className="btn btn-view" onClick={() => handleOpenEdit(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FiEdit2 />
+                      </button>
+                      <button className="btn btn-delete" onClick={() => requestDelete(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FiTrash2 />
+                      </button>
                     </>
                   )}
                 </div>
@@ -422,20 +475,25 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
     }
 
     return (
-      <div className="exhibitions-panel table" style={{ padding: 0 }}>
+      <div className="exhibitions-panel table" style={{
+        padding: '12px',
+        background: 'white',
+        borderRadius: '12px',
+        border: '1px solid rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+      }}>
         <table className="exhibitions-table" aria-label={`${selectedNav || ''} exhibitions`} style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Name</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Start Time</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>End Time</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Timezone</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Country</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Location</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Organizer</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Created By</th>
-              <th style={{ textAlign: 'right', padding: '12px 16px' }}>Actions</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>NAME</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>DATE & TIME</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>TZ</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>COUNTRY</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>LOCATION</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>ORGANIZER</th>
+              <th style={{ textAlign: 'center', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>STATUS</th>
+              <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>CREATOR</th>
+              <th style={{ textAlign: 'right', padding: '10px 16px', fontSize: '11px', color: '#8094AE' }}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -443,56 +501,136 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
               const isLive = live.find((l) => l._id === ex._id) != null;
               const country = countries.find(c => c.code === ex.country);
               return (
-                <tr key={ex._id}>
-                  <td data-label="Name" style={{ padding: '16px', fontWeight: '600' }}>{ex.name}</td>
-                  <td data-label="Start" style={{ padding: '16px' }}>{new Date(ex.startTime).toLocaleString()}</td>
-                  <td data-label="End" style={{ padding: '16px' }}>{new Date(ex.endTime).toLocaleString()}</td>
-                  <td data-label="Timezone" style={{ padding: '16px' }}>{ex.timezone}</td>
-                  <td data-label="Country" style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {country && <span className="country-flag" style={{ fontSize: '24px', lineHeight: '1' }}>{country.flag}</span>}
-                      <span>{country ? country.name : ex.country}</span>
+                <tr key={ex._id} style={{ borderBottom: '1px solid #f0f2f5' }}>
+                  <td data-label="Name" style={{ padding: '12px 16px', fontWeight: '700', color: '#36c0cb' }}>{ex.name}</td>
+                  <td data-label="Date" style={{ padding: '12px 16px', fontSize: '12px', color: '#526484' }}>
+                    <div style={{ fontWeight: '600' }}>Starts: {new Date(ex.startTime).toLocaleDateString()}</div>
+                    <div style={{ fontSize: '11px', color: '#8094AE' }}>Ends: {new Date(ex.endTime).toLocaleDateString()}</div>
+                  </td>
+                  <td data-label="Timezone" style={{ padding: '12px 16px', fontSize: '12px', color: '#8094AE' }}>{ex.timezone?.replace('UTC', '') || '—'}</td>
+                  <td data-label="Country" style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px' }}>
+                      {country && <span style={{ fontSize: '18px' }}>{country.flag}</span>}
+                      <span style={{ fontWeight: '500' }}>{country ? country.name : ex.country}</span>
                     </div>
                   </td>
-                  <td data-label="Location" style={{ padding: '16px' }}>
-                    <div style={{ display: 'grid', gap: 4 }}>
-                      <span>{ex.locationType || '—'}</span>
-                      {ex.venue && <span style={{ color: 'var(--muted)', fontSize: 12 }}>{ex.venue}</span>}
+                  <td data-label="Location" style={{ padding: '12px 16px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#36c0cb' }}>{ex.locationType}</div>
+                    {ex.venue && <div style={{ fontSize: '11px', color: '#8094AE', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ex.venue}>{ex.venue}</div>}
+                  </td>
+                  <td data-label="Organizer" style={{ padding: '12px 16px' }}>
+                    <div style={{ fontSize: '12px', lineHeight: '1.4', maxWidth: '200px' }}>
+                      <div style={{ fontWeight: '600', color: '#36c0cb' }}>{ex.organizationDetails || '—'}</div>
+                      <div style={{ fontSize: '11px', color: '#8094AE' }}>{ex.organizerEmail}</div>
                     </div>
                   </td>
-                  <td data-label="Organizer" style={{ padding: '16px' }}>
-                    <div style={{ display: 'grid', gap: 4 }}>
-                      {ex.organizationDetails && <span>{ex.organizationDetails}</span>}
-                      {ex.organizerContactPerson && <span>Contact: {ex.organizerContactPerson}</span>}
-                      {ex.organizerEmail && <span>Email: {ex.organizerEmail}</span>}
-                      {ex.organizerMobile && <span>Mobile: {ex.organizerMobile}</span>}
-                      {!ex.organizationDetails && !ex.organizerContactPerson && !ex.organizerEmail && !ex.organizerMobile && <span>—</span>}
-                    </div>
-                  </td>
-                  <td data-label="Status" style={{ padding: '16px' }}>
-                    <span className={`pill ${isLive ? 'pill-live' : selectedNav === 'upcoming' ? 'pill-upcoming' : 'pill-completed'}`}>
+                  <td data-label="Status" style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    <span className={`pill ${isLive ? 'pill-live' : selectedNav === 'upcoming' ? 'pill-upcoming' : 'pill-completed'}`} style={{
+                      padding: '4px 10px',
+                      fontSize: '10px',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      fontWeight: '700',
+                      borderRadius: '4px',
+                      display: 'inline-block'
+                    }}>
                       {isLive ? 'Live' : selectedNav === 'upcoming' ? 'Upcoming' : 'Completed'}
                     </span>
                   </td>
-                  <td data-label="Created By" style={{ padding: '16px' }}>{ex.createdBy || '—'}</td>
-                  <td data-label="Actions" style={{ padding: '16px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <td data-label="Created By" style={{ padding: '12px 16px', fontSize: '12px', color: '#526484' }}>{ex.createdBy || '—'}</td>
+                  <td data-label="Actions" style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                       {isAdmin && (
                         <button
                           className="btn"
-                          title="Open exhibition form"
+                          title="Open Checklist"
                           onClick={(e) => { e.stopPropagation(); openExhibitionForm(ex); }}
+                          style={{
+                            padding: '0 12px',
+                            height: '32px',
+                            fontSize: '12px',
+                            minWidth: '85px',
+                            borderRadius: '8px',
+                            flexShrink: 0
+                          }}
                         >
-                          <FiStar />
+                          Checklist
                         </button>
                       )}
-                      <button className="btn" onClick={() => setViewing(ex)}>View</button>
+                      <button
+                        className="btn"
+                        onClick={() => setViewing(ex)}
+                        title="View"
+                        style={{
+                          padding: '0',
+                          height: '32px',
+                          width: '32px',
+                          minWidth: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                          flexShrink: 0
+                        }}
+                      >
+                        <FiEye size={16} />
+                      </button>
                       {isAdmin && (
                         <>
-                          <button className="btn" onClick={() => handleOpenDuplicate(ex)}>
-                            <FiCopy /> Duplicate
+                          <button
+                            className="btn"
+                            onClick={() => handleOpenDuplicate(ex)}
+                            title="Duplicate"
+                            style={{
+                              padding: '0',
+                              height: '32px',
+                              width: '32px',
+                              minWidth: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '50%',
+                              flexShrink: 0
+                            }}
+                          >
+                            <FiCopy size={16} />
                           </button>
-                          <button className="btn danger" onClick={() => requestDelete(ex)}>Delete</button>
+                          <button
+                            className="btn"
+                            onClick={() => handleOpenEdit(ex)}
+                            title="Edit"
+                            style={{
+                              padding: '0',
+                              height: '32px',
+                              width: '32px',
+                              minWidth: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '50%',
+                              flexShrink: 0
+                            }}
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                          <button
+                            className="btn danger"
+                            onClick={() => requestDelete(ex)}
+                            title="Delete"
+                            style={{
+                              padding: '0',
+                              height: '32px',
+                              width: '32px',
+                              minWidth: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '50%',
+                              flexShrink: 0
+                            }}
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
                         </>
                       )}
                     </div>
@@ -577,62 +715,81 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
         </nav>
       </div>
       <div className="landing-content">
-        <div className="landing-header">
-          <div className="landing-header-copy">
-            <h1>Exhibitions</h1>
-          </div>
-          <div className="landing-header-cta">
-            {isAdmin && (
-              <button
-                className="btn"
-                onClick={handleOpenCreate}
-              >
-                <FiPlus /> Create Exhibition
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="status-summary">
-          {statusSummary.map((card) => (
-            <button
-              key={card.key}
-              type="button"
-              className={`status-card status-${card.tone} ${selectedNav === card.key ? 'active' : ''}`}
-              onClick={() => setSelectedNav(card.key)}
-            >
-              <span className="status-label-upcoming">{card.label}</span>
-              <span className="status-count">{card.count}</span>
-            </button>
-          ))}
-        </div>
-
-        {error && <div className="msg error">{error}</div>}
-        {message.text && <div className={`msg ${message.type}`}>{message.text}</div>}
-
-        {deleteConfirm && (
-          <div className="confirm-modal-overlay" onClick={handleDeleteCancel}>
-            <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-              <h3>Confirm Deletion</h3>
-              <p>Delete "{deleteConfirm.exhibition?.name}" and all associated cards? This action cannot be undone.</p>
-              <div className="confirm-modal-actions">
-                <button className="btn secondary" onClick={handleDeleteCancel}>Cancel</button>
-                <button className="btn danger" onClick={handleDeleteProceed}>Delete</button>
-              </div>
+        <div className="home-content-container" style={{
+          maxWidth: '1600px',
+          margin: '0 auto',
+          padding: '1rem 1.5rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div className="landing-header">
+            <div className="landing-header-copy">
+              <h1>Exhibitions</h1>
+            </div>
+            <div className="landing-header-cta">
+              {isAdmin && (
+                <button
+                  className="btn"
+                  onClick={handleOpenCreate}
+                >
+                  <FiPlus /> Create Exhibition
+                </button>
+              )}
             </div>
           </div>
-        )}
 
-        {!selectedNav ? renderEmptyState() : (
-          <>
-            <div className="exhibitions-desktop">{renderExhibitionsTable()}</div>
-            <div className="exhibitions-mobile">{renderExhibitionsCards()}</div>
-          </>
-        )}
+          <div className="status-summary" style={{ gap: '12px', marginBottom: '16px' }}>
+            {statusSummary.map((card) => (
+              <button
+                key={card.key}
+                type="button"
+                className={`status-card status-${card.tone} ${selectedNav === card.key ? 'active' : ''}`}
+                onClick={() => setSelectedNav(card.key)}
+                style={{
+                  background: selectedNav === card.key ? (card.tone === 'live' ? '#36c0cb' : '#f0f2f5') : 'white',
+                  border: '1px solid #e0e6ed',
+                  color: selectedNav === card.key ? (card.tone === 'live' ? 'white' : '#3a2272') : '#526484',
+                  boxShadow: selectedNav === card.key ? '0 4px 12px rgba(58, 34, 114, 0.15)' : 'none',
+                  padding: '12px 16px',
+                  borderRadius: '10px'
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em' }}>{card.label}</div>
+                <div style={{ fontSize: '24px', fontWeight: '800' }}>{card.count}</div>
+              </button>
+            ))}
+          </div>
+
+          {error && <div className="msg error">{error}</div>}
+          {message.text && <div className={`msg ${message.type}`}>{message.text}</div>}
+
+          {deleteConfirm && (
+            <div className="confirm-modal-overlay">
+              <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+                <h3>Confirm Deletion</h3>
+                <p>Delete "{deleteConfirm.exhibition?.name}" and all associated cards? This action cannot be undone.</p>
+                <div className="confirm-modal-actions">
+                  <button className="btn secondary" onClick={handleDeleteCancel}>Cancel</button>
+                  <button className="btn danger" onClick={handleDeleteProceed}>Delete</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!selectedNav ? renderEmptyState() : (
+            <>
+              <div className="exhibitions-desktop">{renderExhibitionsTable()}</div>
+              <div className="exhibitions-mobile">{renderExhibitionsCards()}</div>
+            </>
+          )}
+        </div>
       </div>
 
       {showCreate && (
-        <div className="modal" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) closeCreateModal(); }}>
+        <div className="modal" role="dialog" aria-modal="true">
           <div className="modal-panel form-modal">
             <div className="modal-header">
               <h3>{modalMode === 'duplicate' ? 'Duplicate Exhibition' : 'Create Exhibition'}</h3>
@@ -732,7 +889,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
               </div>
               <div className="form-actions">
                 <button className="primary" onClick={handleSaveExhibition} disabled={creating}>
-                  {modalMode === 'duplicate' ? 'Create Duplicate' : 'Save Exhibition'}
+                  {modalMode === 'duplicate' ? 'Create Duplicate' : modalMode === 'edit' ? 'Update Exhibition' : 'Save Exhibition'}
                 </button>
               </div>
             </div>
@@ -741,7 +898,7 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
       )}
 
       {viewing && (
-        <div className="modal" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setViewing(null); }}>
+        <div className="modal" role="dialog" aria-modal="true">
           <div className="modal-panel">
             <div className="modal-header">
               <h3>Exhibition Details</h3>

@@ -3,7 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { createExhibition, listExhibitions, duplicateExhibition, getLiveExhibitions, getExhibitionCards, deleteExhibition, getExhibitionChecklist, updateExhibitionChecklist } from '../controllers/exhibitionController.js';
+import { createExhibition, listExhibitions, duplicateExhibition, getLiveExhibitions, getExhibitionCards, deleteExhibition, getExhibitionChecklist, updateExhibitionChecklist, updateExhibition } from '../controllers/exhibitionController.js';
+import { protect } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +28,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
@@ -38,18 +39,20 @@ const upload = multer({
   }
 });
 
-router.post('/', createExhibition);
-router.get('/', listExhibitions);
-router.get('/live/today', getLiveExhibitions);
-router.post('/:id/duplicate', duplicateExhibition);
-router.get('/:id/checklist', getExhibitionChecklist);
-router.put('/:id/checklist', upload.fields([
+router.post('/', protect, createExhibition);
+router.put('/:id', protect, updateExhibition);
+router.get('/', protect, listExhibitions);
+router.get('/live/today', protect, getLiveExhibitions);
+router.post('/:id/duplicate', protect, duplicateExhibition);
+router.get('/:id/checklist', protect, getExhibitionChecklist);
+router.put('/:id/checklist', protect, upload.fields([
   { name: 'perfInvoice', maxCount: 1 },
-  { name: 'paymentProof', maxCount: 1 },
+  { name: 'payslip', maxCount: 4 },
   { name: 'standDesign', maxCount: 1 },
-  { name: 'samplesPackingList', maxCount: 1 }
+  { name: 'samplesPackingList', maxCount: 1 },
+  { name: 'insuranceFile', maxCount: 1 }
 ]), updateExhibitionChecklist);
-router.get('/:id/cards', getExhibitionCards);
-router.delete('/:id', deleteExhibition);
+router.get('/:id/cards', protect, getExhibitionCards);
+router.delete('/:id', protect, deleteExhibition);
 
 export default router;

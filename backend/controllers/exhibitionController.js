@@ -157,7 +157,8 @@ export const updateExhibitionChecklist = async (req, res) => {
       'contractorQuote', 'contractorAdvance', 'contractorBalance',
       'samplesPallet', 'samplesWeight', 'samplesDimensions',
       'logisticsCompany', 'logisticsContact', 'logisticsEmail', 'logisticsMobile',
-      'logisticsQuote', 'logisticsPayment', 'logisticsAwb', 'logisticsSamples'
+      'logisticsQuote', 'logisticsPayment', 'logisticsAwb', 'logisticsSamples',
+      'remarks', 'totalPayment'
     ];
 
     textFields.forEach(field => {
@@ -169,8 +170,8 @@ export const updateExhibitionChecklist = async (req, res) => {
     // Handle exhibitors array
     if (req.body.exhibitors) {
       try {
-        const exhibitors = typeof req.body.exhibitors === 'string' 
-          ? JSON.parse(req.body.exhibitors) 
+        const exhibitors = typeof req.body.exhibitors === 'string'
+          ? JSON.parse(req.body.exhibitors)
           : req.body.exhibitors;
         if (Array.isArray(exhibitors) && exhibitors.length > 0) {
           updateData.exhibitors = exhibitors;
@@ -183,24 +184,27 @@ export const updateExhibitionChecklist = async (req, res) => {
     // Process PDF files if uploaded
     const allFiles = Object.values(req.files || {}).flat();
     const pdfFiles = allFiles.filter(f => f.mimetype === 'application/pdf');
+    const newPayslips = [];
 
     for (const pdfFile of pdfFiles) {
       const pdfPath = path.join(__dirname, "..", "uploads", pdfFile.filename);
       if (fs.existsSync(pdfPath)) {
         const buffer = fs.readFileSync(pdfPath);
         const base64Pdf = `data:${pdfFile.mimetype};base64,${buffer.toString("base64")}`;
-        
+
         // Map file field names to database fields
         if (pdfFile.fieldname === 'perfInvoice') {
           updateData.perfInvoice = base64Pdf;
-        } else if (pdfFile.fieldname === 'paymentProof') {
-          updateData.paymentProof = base64Pdf;
+        } else if (pdfFile.fieldname === 'payslip') {
+          newPayslips.push(base64Pdf);
         } else if (pdfFile.fieldname === 'standDesign') {
           updateData.standDesign = base64Pdf;
         } else if (pdfFile.fieldname === 'samplesPackingList') {
           updateData.samplesPackingList = base64Pdf;
+        } else if (pdfFile.fieldname === 'insuranceFile') {
+          updateData.insuranceFile = base64Pdf;
         }
-        
+
         // Clean up temp file
         fs.unlink(pdfPath, (err) => {
           if (err && err.code !== 'ENOENT') {
@@ -214,8 +218,30 @@ export const updateExhibitionChecklist = async (req, res) => {
     if (!updateData.perfInvoice && exhibition.perfInvoice) {
       updateData.perfInvoice = exhibition.perfInvoice;
     }
-    if (!updateData.paymentProof && exhibition.paymentProof) {
-      updateData.paymentProof = exhibition.paymentProof;
+    // Handle structured deposits
+    if (req.body.deposits) {
+      try {
+        let deposits = typeof req.body.deposits === 'string'
+          ? JSON.parse(req.body.deposits)
+          : req.body.deposits;
+
+        if (Array.isArray(deposits)) {
+          // Assign new payslips to entries missing them
+          let fileIdx = 0;
+          deposits = deposits.map(dep => {
+            if (!dep.payslip && fileIdx < newPayslips.length) {
+              return { ...dep, payslip: newPayslips[fileIdx++] };
+            }
+            return dep;
+          });
+          updateData.deposits = deposits;
+        }
+      } catch (e) {
+        console.warn('Failed to parse deposits:', e.message);
+        updateData.deposits = exhibition.deposits || [];
+      }
+    } else {
+      updateData.deposits = exhibition.deposits || [];
     }
     if (!updateData.standDesign && exhibition.standDesign) {
       updateData.standDesign = exhibition.standDesign;
@@ -223,11 +249,14 @@ export const updateExhibitionChecklist = async (req, res) => {
     if (!updateData.samplesPackingList && exhibition.samplesPackingList) {
       updateData.samplesPackingList = exhibition.samplesPackingList;
     }
+    if (!updateData.insuranceFile && exhibition.insuranceFile) {
+      updateData.insuranceFile = exhibition.insuranceFile;
+    }
 
     // Convert string booleans to actual booleans
     const booleanFields = [
       'paymentChecklist', 'badgeChecklist', 'accommodationChecklist',
-      'posterChecklist', 'samplesDispatchChecklist'
+      'posterChecklist', 'samplesDispatchChecklist', 'insuranceChecklist'
     ];
     booleanFields.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -249,6 +278,56 @@ export const updateExhibitionChecklist = async (req, res) => {
     return res.json({ success: true, data: updated });
   } catch (err) {
     console.error('Update exhibition checklist error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const updateExhibition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      startTime,
+      endTime,
+      timezone,
+      country,
+      locationType,
+      venue,
+      organizationDetails,
+      organizerContactPerson,
+      organizerEmail,
+      organizerMobile,
+      createdBy
+    } = req.body;
+
+    const exhibition = await Exhibition.findById(id);
+    if (!exhibition) {
+      return res.status(404).json({ success: false, message: 'Exhibition not found' });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (startTime) updateData.startTime = new Date(startTime);
+    if (endTime) updateData.endTime = new Date(endTime);
+    if (timezone) updateData.timezone = timezone;
+    if (country) updateData.country = country;
+    if (locationType !== undefined) updateData.locationType = locationType;
+    if (venue !== undefined) updateData.venue = venue;
+    if (organizationDetails !== undefined) updateData.organizationDetails = organizationDetails;
+    if (organizerContactPerson !== undefined) updateData.organizerContactPerson = organizerContactPerson;
+    if (organizerEmail !== undefined) updateData.organizerEmail = organizerEmail;
+    if (organizerMobile !== undefined) updateData.organizerMobile = organizerMobile;
+    if (createdBy !== undefined) updateData.createdBy = createdBy;
+
+    const updated = await Exhibition.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('Update exhibition error', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

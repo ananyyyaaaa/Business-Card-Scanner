@@ -20,7 +20,11 @@ const exhibitionSchema = new mongoose.Schema({
   standType: { type: String, default: '' },
   dimensions: { type: String, default: '' },
   perfInvoice: { type: String, default: '' }, // base64 PDF
-  paymentProof: { type: String, default: '' }, // base64 PDF
+  totalPayment: { type: Number, default: 0 },
+  deposits: [{
+    amount: { type: Number, default: 0 },
+    payslip: { type: String, default: '' } // base64 PDF
+  }],
   paymentChecklist: { type: Boolean, default: false },
   portalLink: { type: String, default: '' },
   portalId: { type: String, default: '' },
@@ -60,7 +64,10 @@ const exhibitionSchema = new mongoose.Schema({
   logisticsQuote: { type: String, default: '' },
   logisticsPayment: { type: String, default: '' },
   logisticsAwb: { type: String, default: '' },
-  logisticsSamples: { type: String, default: '' }
+  logisticsSamples: { type: String, default: '' },
+  remarks: { type: String, default: '' },
+  insuranceChecklist: { type: Boolean, default: false },
+  insuranceFile: { type: String, default: '' } // base64 PDF
 });
 
 export default mongoose.models.Exhibition || mongoose.model('Exhibition', exhibitionSchema);

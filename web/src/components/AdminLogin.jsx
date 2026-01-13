@@ -23,6 +23,9 @@ const AdminLogin = ({ onLogin }) => {
   return (
     <div className="container" style={{ maxWidth: '500px', margin: '40px auto' }}>
       <div style={{ background: 'linear-gradient(180deg, rgba(96,165,250,0.1), rgba(244,114,182,0.1))', border: '1px solid rgba(96,165,250,0.3)', borderRadius: '16px', padding: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <img src="/logo.jpg" alt="Logo" style={{ maxHeight: '60px' }} />
+        </div>
         <h2 style={{ marginBottom: '24px', textAlign: 'center' }}>Admin Login</h2>
         <form onSubmit={handleSubmit}>
           {error && <div className="msg error" style={{ marginBottom: '16px' }}>{error}</div>}

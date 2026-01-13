@@ -22,6 +22,29 @@ const getBackendBase = () => {
 const BACKEND_BASE = getBackendBase();
 console.log('🔗 Backend URL:', BACKEND_BASE);
 
+// Helper to get auth header
+const getAuthHeaders = (contentType = 'application/json') => {
+  const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+  const headers = {};
+  if (contentType) {
+    headers['Content-Type'] = contentType;
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+// Helper for FormData headers (no Content-Type, let browser set it with boundary)
+const getFormDataHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export async function saveCardEntry(imageFiles, audioBlob, fields, exhibitionId = null, createdBy = '') {
   const form = new FormData();
 
@@ -43,7 +66,11 @@ export async function saveCardEntry(imageFiles, audioBlob, fields, exhibitionId 
   if (createdBy) form.append('createdBy', createdBy);
 
   const url = `${BACKEND_BASE}/api/cards/save-entry`;
-  const res = await fetch(url, { method: 'POST', body: form });
+  const res = await fetch(url, {
+    method: 'POST',
+    body: form,
+    headers: getFormDataHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Server error ${res.status}: ${txt}`);
@@ -55,7 +82,11 @@ export async function extractOcr(imageFile) {
   const form = new FormData();
   form.append('image', imageFile, imageFile.name || 'card.jpg');
   const url = `${BACKEND_BASE}/api/cards/extract-ocr`;
-  const res = await fetch(url, { method: 'POST', body: form });
+  const res = await fetch(url, {
+    method: 'POST',
+    body: form,
+    headers: getFormDataHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`OCR error ${res.status}: ${txt}`);
@@ -65,7 +96,9 @@ export async function extractOcr(imageFile) {
 
 export async function getCards() {
   const url = `${BACKEND_BASE}/api/cards/`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Fetch error ${res.status}: ${txt}`);
@@ -75,7 +108,9 @@ export async function getCards() {
 
 export async function getCardsForExhibition(exhibitionId) {
   const url = `${BACKEND_BASE}/api/cards/?exhibitionId=${encodeURIComponent(exhibitionId)}`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Fetch error ${res.status}: ${txt}`);
@@ -100,7 +135,7 @@ export async function createExhibition({
   const url = `${BACKEND_BASE}/api/exhibitions`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify({
       name,
       startTime,
@@ -123,9 +158,27 @@ export async function createExhibition({
   return res.json();
 }
 
+export async function updateExhibition(id, data) {
+  const url = `${BACKEND_BASE}/api/exhibitions/${id}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Update exhibition error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
 export async function duplicateExhibition(id, createdBy = '') {
   const url = `${BACKEND_BASE}/api/exhibitions/${id}/duplicate`;
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ createdBy }) });
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ createdBy })
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Duplicate exhibition error ${res.status}: ${txt}`);
@@ -135,7 +188,10 @@ export async function duplicateExhibition(id, createdBy = '') {
 
 export async function deleteExhibition(id) {
   const url = `${BACKEND_BASE}/api/exhibitions/${id}`;
-  const res = await fetch(url, { method: 'DELETE' });
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Delete exhibition error ${res.status}: ${txt}`);
@@ -145,7 +201,9 @@ export async function deleteExhibition(id) {
 
 export async function listExhibitions() {
   const url = `${BACKEND_BASE}/api/exhibitions`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Fetch exhibitions error ${res.status}: ${txt}`);
@@ -155,7 +213,9 @@ export async function listExhibitions() {
 
 export async function getLiveExhibitions() {
   const url = `${BACKEND_BASE}/api/exhibitions/live/today`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Fetch live exhibitions error ${res.status}: ${txt}`);
@@ -236,13 +296,9 @@ export async function login(email, password, otp = null) {
 
 export async function checkAccess() {
   const url = `${BACKEND_BASE}/api/users/check-access`;
-  const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -253,13 +309,9 @@ export async function checkAccess() {
 
 export async function getCurrentUser() {
   const url = `${BACKEND_BASE}/api/users/me`;
-  const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -284,13 +336,9 @@ export async function adminLogin(email, password) {
 
 export async function getAdminProfile() {
   const url = `${BACKEND_BASE}/api/admin/me`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -301,13 +349,9 @@ export async function getAdminProfile() {
 
 export async function updateAdminProfile(data) {
   const url = `${BACKEND_BASE}/api/admin/me`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -319,13 +363,9 @@ export async function updateAdminProfile(data) {
 
 export async function getIpRequests() {
   const url = `${BACKEND_BASE}/api/admin/ip-requests`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -336,13 +376,9 @@ export async function getIpRequests() {
 
 export async function approveIpRequest(requestId, approved) {
   const url = `${BACKEND_BASE}/api/admin/ip-requests/${requestId}`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ approved }),
   });
   if (!res.ok) {
@@ -354,13 +390,9 @@ export async function approveIpRequest(requestId, approved) {
 
 export async function updateCard(cardId, fields) {
   const url = `${BACKEND_BASE}/api/cards/${cardId}`;
-  const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ fields }),
   });
   if (!res.ok) {
@@ -372,13 +404,9 @@ export async function updateCard(cardId, fields) {
 
 export async function getExhibitionChecklist(exhibitionId) {
   const url = `${BACKEND_BASE}/api/exhibitions/${exhibitionId}/checklist`;
-  const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -389,11 +417,11 @@ export async function getExhibitionChecklist(exhibitionId) {
 
 export async function updateExhibitionChecklist(exhibitionId, formData) {
   const url = `${BACKEND_BASE}/api/exhibitions/${exhibitionId}/checklist`;
-  const token = localStorage.getItem('token');
   const res = await fetch(url, {
     method: 'PUT',
     headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
+      // Content-Type not set for FormData, but Auth header is needed
+      'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('adminToken')}`
     },
     body: formData,
   });
@@ -406,12 +434,9 @@ export async function updateExhibitionChecklist(exhibitionId, formData) {
 
 export async function exportAllExhibitions() {
   const url = `${BACKEND_BASE}/api/admin/export/exhibitions`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -422,12 +447,9 @@ export async function exportAllExhibitions() {
 
 export async function exportExhibitionCards(exhibitionId) {
   const url = `${BACKEND_BASE}/api/admin/export/exhibitions/${exhibitionId}/cards`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -438,13 +460,9 @@ export async function exportExhibitionCards(exhibitionId) {
 
 export async function getUsers() {
   const url = `${BACKEND_BASE}/api/admin/users`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -455,13 +473,9 @@ export async function getUsers() {
 
 export async function createUser(userData) {
   const url = `${BACKEND_BASE}/api/admin/users`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(userData),
   });
   if (!res.ok) {
@@ -473,13 +487,9 @@ export async function createUser(userData) {
 
 export async function updateUser(id, userData) {
   const url = `${BACKEND_BASE}/api/admin/users/${id}`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(userData),
   });
   if (!res.ok) {
@@ -491,13 +501,9 @@ export async function updateUser(id, userData) {
 
 export async function deleteUser(id) {
   const url = `${BACKEND_BASE}/api/admin/users/${id}`;
-  const token = localStorage.getItem('adminToken');
   const res = await fetch(url, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) {
     const txt = await res.text();

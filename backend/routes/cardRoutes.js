@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { saveEntry, getAllCards, extractOCR, updateCardDetails } from "../controllers/cardController.js";
+import { protect } from "../middleware/auth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,9 +32,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Routes
-router.post("/save-entry", upload.fields([{ name: "image", maxCount: 5 }, { name: "audio", maxCount: 1 }]), saveEntry);
-router.get("/", getAllCards);
-router.put("/:id", updateCardDetails);
-router.post("/extract-ocr", upload.single("image"), extractOCR);
+router.post("/save-entry", protect, upload.fields([{ name: "image", maxCount: 5 }, { name: "audio", maxCount: 1 }]), saveEntry);
+router.get("/", protect, getAllCards);
+router.put("/:id", protect, updateCardDetails);
+router.post("/extract-ocr", protect, upload.single("image"), extractOCR);
 
 export default router;

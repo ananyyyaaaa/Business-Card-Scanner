@@ -52,7 +52,8 @@ export default function ExhibitionForm() {
     standType: '',
     dimensions: '',
     perfInvoice: null,
-    paymentProof: null,
+    totalPayment: 0,
+    deposits: [], // [{ amount: number, payslip: File | string }]
     portalLink: '',
     portalId: '',
     portalPasscode: '',
@@ -84,6 +85,9 @@ export default function ExhibitionForm() {
     logisticsAwb: '',
     logisticsSamples: '',
     paymentChecklist: false,
+    remarks: '',
+    insuranceChecklist: false,
+    insuranceFile: null,
   };
 
   const [form, setForm] = useState(initialState);
@@ -111,7 +115,8 @@ export default function ExhibitionForm() {
           standType: data.standType || '',
           dimensions: data.dimensions || '',
           perfInvoice: data.perfInvoice || null,
-          paymentProof: data.paymentProof || null,
+          totalPayment: data.totalPayment || 0,
+          deposits: data.deposits || [],
           portalLink: data.portalLink || '',
           portalId: data.portalId || '',
           portalPasscode: data.portalPasscode || '',
@@ -147,6 +152,9 @@ export default function ExhibitionForm() {
           logisticsAwb: data.logisticsAwb || '',
           logisticsSamples: data.logisticsSamples || '',
           paymentChecklist: data.paymentChecklist || false,
+          remarks: data.remarks || '',
+          insuranceChecklist: data.insuranceChecklist || false,
+          insuranceFile: data.insuranceFile || null,
         });
       }
     } catch (error) {
@@ -214,6 +222,7 @@ export default function ExhibitionForm() {
     handleChange(field, file);
   };
 
+
   const handleSave = async () => {
     if (!id) {
       setMessage({ type: 'error', text: 'No exhibition ID found. Please access this form from an exhibition.' });
@@ -233,7 +242,8 @@ export default function ExhibitionForm() {
         'contractorQuote', 'contractorAdvance', 'contractorBalance',
         'samplesPallet', 'samplesWeight', 'samplesDimensions',
         'logisticsCompany', 'logisticsContact', 'logisticsEmail', 'logisticsMobile',
-        'logisticsQuote', 'logisticsPayment', 'logisticsAwb', 'logisticsSamples'
+        'logisticsQuote', 'logisticsPayment', 'logisticsAwb', 'logisticsSamples',
+        'remarks', 'totalPayment'
       ];
 
       textFields.forEach(key => {
@@ -246,7 +256,7 @@ export default function ExhibitionForm() {
       // Add boolean fields
       const booleanFields = [
         'paymentChecklist', 'badgeChecklist', 'accommodationChecklist',
-        'posterChecklist', 'samplesDispatchChecklist'
+        'posterChecklist', 'samplesDispatchChecklist', 'insuranceChecklist'
       ];
       booleanFields.forEach(key => {
         formData.append(key, form[key] ? 'true' : 'false');
@@ -256,14 +266,28 @@ export default function ExhibitionForm() {
       if (form.perfInvoice instanceof File) {
         formData.append('perfInvoice', form.perfInvoice);
       }
-      if (form.paymentProof instanceof File) {
-        formData.append('paymentProof', form.paymentProof);
-      }
+
+      // Handle deposits array
+      const depositMetadata = (form.deposits || []).map(dep => ({
+        amount: dep.amount,
+        payslip: (dep.payslip instanceof File) ? "" : dep.payslip
+      }));
+      formData.append('deposits', JSON.stringify(depositMetadata));
+
+      (form.deposits || []).forEach(dep => {
+        if (dep.payslip instanceof File) {
+          formData.append('payslip', dep.payslip);
+        }
+      });
+
       if (form.standDesign instanceof File) {
         formData.append('standDesign', form.standDesign);
       }
       if (form.samplesPackingList instanceof File) {
         formData.append('samplesPackingList', form.samplesPackingList);
+      }
+      if (form.insuranceFile instanceof File) {
+        formData.append('insuranceFile', form.insuranceFile);
       }
 
       const res = await updateExhibitionChecklist(id, formData);
@@ -298,9 +322,54 @@ export default function ExhibitionForm() {
       return field === 'perfInvoice' ? 'Performa Invoice (uploaded)' :
         field === 'paymentProof' ? 'Payment Proof (uploaded)' :
           field === 'standDesign' ? 'Stand Design (uploaded)' :
-            field === 'samplesPackingList' ? 'Packing List (uploaded)' : 'PDF (uploaded)';
+            field === 'samplesPackingList' ? 'Packing List (uploaded)' :
+              field === 'insuranceFile' ? 'Insurance File (uploaded)' : 'PDF (uploaded)';
     }
     return null;
+  };
+
+  const getMultiPdfName = (value, index) => {
+    if (value instanceof File) return value.name;
+    if (typeof value === 'string' && value.startsWith('data:')) {
+      return `Payslip ${index + 1} (uploaded)`;
+    }
+    return 'PDF (uploaded)';
+  };
+
+  const totalDeposited = (form.deposits || []).reduce((sum, dep) => sum + Number(dep.amount || 0), 0);
+  const remainingBalance = Math.max(0, (form.totalPayment || 0) - totalDeposited);
+  const isPaymentComplete = (form.totalPayment || 0) > 0 && totalDeposited >= form.totalPayment;
+
+  const addDeposit = () => {
+    setForm(prev => ({
+      ...prev,
+      deposits: [...(prev.deposits || []), { amount: '', payslip: null }]
+    }));
+  };
+
+  const updateDeposit = (idx, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      deposits: prev.deposits.map((dep, i) => i === idx ? { ...dep, [field]: value } : dep)
+    }));
+  };
+
+  const handleDepositFile = (idx, e) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      updateDeposit(idx, 'payslip', file);
+    } else if (file) {
+      setMessage({ type: 'error', text: 'Only PDF files are allowed' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      e.target.value = '';
+    }
+  };
+
+  const removeDeposit = (idx) => {
+    setForm(prev => ({
+      ...prev,
+      deposits: prev.deposits.filter((_, i) => i !== idx)
+    }));
   };
 
   if (loading) {
@@ -377,17 +446,104 @@ export default function ExhibitionForm() {
               )}
             </div>
             <div className="form-row">
-              <label>Payment Proof / Installments (PDF)</label>
+              <label>Total Exhibition Payment (Currency)</label>
               <input
-                type="file"
-                accept="application/pdf"
+                type="number"
+                className="input"
+                placeholder="e.g. 10000"
+                value={form.totalPayment}
+                onChange={(e) => handleChange('totalPayment', e.target.value)}
                 disabled={!isEditing}
-                onChange={(e) => handleFileChange('paymentProof', e)}
               />
-              {hasPdf('paymentProof') && (
-                <span className="muted" style={{ display: 'block', marginTop: '8px' }}>
-                  {getPdfName('paymentProof')}
-                </span>
+            </div>
+
+            <div className="payment-tracker" style={{
+              marginTop: '24px',
+              padding: '20px',
+              background: 'rgba(58, 34, 114, 0.03)',
+              borderRadius: '12px',
+              border: '1px solid rgba(58, 34, 114, 0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, color: '#3a2272' }}>Payment Deposits Tracker</h3>
+                {isPaymentComplete && (
+                  <span className="pill pill-live" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 'bold' }}>
+                    PAYMENT COMPLETED
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #e0e6ed' }}>
+                  <div style={{ fontSize: '12px', color: '#8094AE', textTransform: 'uppercase', marginBottom: '4px' }}>Total Deposited</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#364A63' }}>{totalDeposited.toLocaleString()}</div>
+                </div>
+                <div style={{ padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #e0e6ed' }}>
+                  <div style={{ fontSize: '12px', color: '#8094AE', textTransform: 'uppercase', marginBottom: '4px' }}>Remaining Balance</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: remainingBalance > 0 ? '#ef4444' : '#10b981' }}>{remainingBalance.toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(form.deposits || []).map((dep, idx) => (
+                  <div key={idx} style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(120px, 1fr) 2fr auto',
+                    gap: '12px',
+                    alignItems: 'end',
+                    padding: '12px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e0e6ed'
+                  }}>
+                    <div>
+                      <label style={{ fontSize: '11px', marginBottom: '4px' }}>Amount</label>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="0.00"
+                        value={dep.amount}
+                        disabled={!isEditing}
+                        onChange={(e) => updateDeposit(idx, 'amount', e.target.value)}
+                        style={{ height: '36px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', marginBottom: '4px' }}>Payslip (PDF)</label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        disabled={!isEditing}
+                        onChange={(e) => handleDepositFile(idx, e)}
+                        style={{ fontSize: '12px' }}
+                      />
+                      {dep.payslip && (
+                        <div style={{ fontSize: '11px', color: '#8094AE', marginTop: '4px' }}>
+                          {getMultiPdfName(dep.payslip, idx)}
+                        </div>
+                      )}
+                    </div>
+                    {isEditing && (
+                      <button
+                        className="btn danger"
+                        onClick={() => removeDeposit(idx)}
+                        style={{ padding: '0 12px', height: '36px' }}
+                      >
+                        <FiTrash2 />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {isEditing && !isPaymentComplete && (
+                <button
+                  className="btn"
+                  onClick={addDeposit}
+                  style={{ marginTop: '16px', width: '100%', borderStyle: 'dashed' }}
+                >
+                  <FiPlus /> Add Next Deposit
+                </button>
               )}
             </div>
             <div className="checkbox-grid three-column">
@@ -402,6 +558,33 @@ export default function ExhibitionForm() {
                   {item.label}
                 </label>
               ))}
+            </div>
+            <div className="form-row" style={{ marginTop: '20px' }}>
+              <label className="checkbox-row" style={{ fontWeight: '600' }}>
+                <input
+                  type="checkbox"
+                  checked={!!form.insuranceChecklist}
+                  disabled={!isEditing}
+                  onChange={(e) => handleChange('insuranceChecklist', e.target.checked)}
+                />
+                Insurance Taken?
+              </label>
+              {form.insuranceChecklist && (
+                <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(96,165,250,0.05)', borderRadius: '8px', border: '1px dashed rgba(96,165,250,0.2)' }}>
+                  <label style={{ display: 'block', marginBottom: '8px' }}>Upload Insurance Document (PDF)</label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    disabled={!isEditing}
+                    onChange={(e) => handleFileChange('insuranceFile', e)}
+                  />
+                  {hasPdf('insuranceFile') && (
+                    <span className="muted" style={{ display: 'block', marginTop: '8px', fontSize: '13px' }}>
+                      {getPdfName('insuranceFile')}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -669,6 +852,21 @@ export default function ExhibitionForm() {
                   />
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="form-block">
+            <h2>Additional Remarks</h2>
+            <div className="form-row">
+              <label>Remarks</label>
+              <textarea
+                className="input multiline"
+                placeholder="Add any additional notes or internal remarks here..."
+                value={form.remarks}
+                onChange={(e) => handleChange('remarks', e.target.value)}
+                disabled={!isEditing}
+                style={{ minHeight: '120px' }}
+              />
             </div>
           </section>
         </div>
