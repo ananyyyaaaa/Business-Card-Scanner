@@ -117,7 +117,7 @@ auth-card {
 
 .auth-form h2 {
   margin: 0;
-  color: #36c0cb;
+  color: #011011;
 }
 
 .auth-form-fields {
@@ -211,9 +211,9 @@ auth-card {
 }
 
 .nav-btn {
-  background: #34c0cb;
-  border: #34c0cb;
-  color: #eaeaea;
+  background: #36c0cb;
+  border: 1px solid #36c0cb;
+  color: #ffffff;
   padding: 8px 16px;
   border-radius: 5px;
   cursor: pointer;
@@ -714,9 +714,9 @@ auth-card {
 }
 
 .btn {
-  background: #fff;
-  border: 1.5px solid #34c0cb;
-  color: #34c0cb;
+  background: #36c0cb;
+  border: 1.5px solid #36c0cb;
+  color: #ffffff;
   padding: 0 16px;
   border-radius: 12px;
   cursor: pointer;
@@ -744,8 +744,9 @@ auth-card {
 }
 
 .btn:hover {
-  border-color: #34c0cb;
-  background: #c7f6f6;
+  border-color: #2aa8b2;
+  background: #2aa8b2;
+  color: #ffffff;
 }
 
 .btn:active {
@@ -772,7 +773,7 @@ auth-card {
   padding: 16px;
   border-radius: 7px;
   font-weight: 600;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
   margin: 12px 0;
   transition: all 0.3s ease;
@@ -1161,7 +1162,7 @@ auth-card {
 }
 
 .exhibitions-table thead th {
-  color: #8094AE;
+  color: #333333;
   font-weight: 700;
   border-bottom: 2px solid var(--border);
   padding: 10px 8px 10px 16px;
@@ -1177,7 +1178,7 @@ auth-card {
 }
 
 .exhibitions-table tbody td {
-  color: #36c0cb;
+  color: #333333;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   max-width: 200px;
@@ -1537,7 +1538,7 @@ profile-card {
 }
 
 .muted {
-  color: #36c0cb;
+  color: #333333;
   font-size: 15px;
   word-wrap: break-word;
 }
@@ -1709,7 +1710,7 @@ profile-card {
   text-transform: uppercase;
   font-size: 15px;
   letter-spacing: 0.2em;
-  color: #36c0cb;
+  color: #333333;
   margin-bottom: 6px;
 }
 
@@ -1740,7 +1741,7 @@ profile-card {
   font-weight: 500;
   letter-spacing: 0.08em;
   font-size: 15px;
-  color: #36c0cb;
+  color: #333333;
 }
 
 .exhibition-form-card .form-row .required {
@@ -1946,10 +1947,7 @@ profile-card {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  background: #36c0cb;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #333333;
   margin-right: 2px;
 }
 
@@ -1959,7 +1957,7 @@ profile-card {
   gap: 20px;
   padding: 1.25rem;
   overflow-y: auto;
-  color: #36c0cb;
+  color: #333333;
   background: #fff;
 }
 
@@ -1983,7 +1981,7 @@ profile-card {
 
 .modal-body .label {
   font-weight: 700;
-  color: #36c0cb;
+  color: #333333;
   font-size: 14px;
 }
 
@@ -1992,7 +1990,7 @@ profile-card {
   border: 1.5px solid rgba(96, 165, 250, 0.3);
   border-radius: 10px;
   padding: 12px;
-  color: #36c0cb;
+  color: #333333;
   font-size: 14px;
   transition: all 0.3s ease;
 }
@@ -2116,7 +2114,7 @@ profile-card {
 
   .modal-header h3 {
     font-size: 20px;
-    color: #36c0cb
+    color: #333333
   }
 
   .modal-body {
@@ -2206,7 +2204,7 @@ profile-card {
 
   .confirm-modal p {
     margin: 0 0 24px 0;
-    color: #36c0cb;
+    color: #333333;
     line-height: 1.6;
     font-size: 15px;
   }
@@ -2305,7 +2303,7 @@ profile-card {
 }
 
 .exhibition-card {
-  background: #08b9f1;
+  background: #36c0cb;
   border: 1px solid rgba(96, 165, 250, 0.2);
   border-radius: 16px;
   padding: 20px;
@@ -2566,7 +2564,7 @@ profile-card {
 .admin-title {
   margin: 0;
   font-size: clamp(26px, 4vw, 34px);
-  background: linear-gradient(135deg, #60a5fa, #f472b6);
+  background: #36c0cb;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

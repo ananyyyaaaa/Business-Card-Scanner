@@ -591,7 +591,7 @@ export default function ExhibitionForm() {
               border: '1px solid rgba(58, 34, 114, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, color: '#3a2272' }}>Payment Deposits Tracker</h3>
+                <h3 style={{ margin: 0, color: '#333333' }}>Payment Deposits Tracker</h3>
                 {isPaymentComplete && (
                   <span className="pill pill-live" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 'bold' }}>
                     PAYMENT COMPLETED
