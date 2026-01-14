@@ -471,6 +471,19 @@ export async function getUsers() {
   return res.json();
 }
 
+export async function getAllUsers() {
+  const url = `${BACKEND_BASE}/api/users`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Get all users error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
 export async function createUser(userData) {
   const url = `${BACKEND_BASE}/api/admin/users`;
   const res = await fetch(url, {

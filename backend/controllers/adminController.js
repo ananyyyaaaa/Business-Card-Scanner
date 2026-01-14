@@ -354,7 +354,7 @@ const getUsers = async (req, res) => {
 // @access  Private (Admin)
 const createUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, designation, phoneNumber } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -367,6 +367,8 @@ const createUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
+      designation: designation || '',
+      phoneNumber: phoneNumber || '',
       password: hashedPassword,
       isEmailVerified: true, // Auto-verify if admin creates
     });
@@ -378,6 +380,8 @@ const createUser = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          designation: user.designation,
+          phoneNumber: user.phoneNumber,
         },
       });
     } else {
@@ -395,7 +399,7 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, designation, phoneNumber } = req.body;
 
     const user = await User.findById(id);
 
@@ -405,6 +409,8 @@ const updateUser = async (req, res) => {
 
     user.name = name || user.name;
     user.email = email || user.email;
+    if (designation !== undefined) user.designation = designation;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
 
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -419,6 +425,8 @@ const updateUser = async (req, res) => {
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
+        designation: updatedUser.designation,
+        phoneNumber: updatedUser.phoneNumber,
       },
     });
   } catch (error) {

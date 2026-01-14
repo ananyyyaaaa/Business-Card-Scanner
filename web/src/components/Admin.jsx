@@ -25,7 +25,7 @@ export default function Admin() {
   // User Modal State
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [userForm, setUserForm] = useState({ name: '', email: '', password: '' });
+  const [userForm, setUserForm] = useState({ name: '', email: '', password: '', designation: '', phoneNumber: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -276,7 +276,7 @@ export default function Admin() {
               className="btn"
               onClick={() => {
                 setEditingUser(null);
-                setUserForm({ name: '', email: '', password: '' });
+                setUserForm({ name: '', email: '', password: '', designation: '', phoneNumber: '' });
                 setShowUserModal(true);
               }}
             >
@@ -291,6 +291,8 @@ export default function Admin() {
                 <tr>
                   <th style={{ textAlign: 'left', padding: '12px 16px' }}>Name</th>
                   <th style={{ textAlign: 'left', padding: '12px 16px' }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: '12px 16px' }}>Designation</th>
+                  <th style={{ textAlign: 'left', padding: '12px 16px' }}>Mobile</th>
                   <th style={{ textAlign: 'left', padding: '12px 16px' }}>Verified</th>
                   <th style={{ textAlign: 'left', padding: '12px 16px' }}>Joined Date</th>
                   <th style={{ textAlign: 'right', padding: '12px 16px' }}>Actions</th>
@@ -301,6 +303,8 @@ export default function Admin() {
                   <tr key={user._id}>
                     <td style={{ padding: '16px', fontWeight: '600' }}>{user.name}</td>
                     <td style={{ padding: '16px' }}>{user.email}</td>
+                    <td style={{ padding: '16px' }}>{user.designation || '—'}</td>
+                    <td style={{ padding: '16px' }}>{user.phoneNumber || '—'}</td>
                     <td style={{ padding: '16px' }}>
                       <span className={`pill ${user.isEmailVerified ? 'pill-live' : 'pill-muted'}`}>
                         {user.isEmailVerified ? 'Verified' : 'Pending'}
@@ -315,7 +319,7 @@ export default function Admin() {
                           className="btn"
                           onClick={() => {
                             setEditingUser(user);
-                            setUserForm({ name: user.name, email: user.email, password: '' });
+                            setUserForm({ name: user.name, email: user.email, password: '', designation: user.designation || '', phoneNumber: user.phoneNumber || '' });
                             setShowUserModal(true);
                           }}
                           style={{ padding: '6px' }}
@@ -374,6 +378,24 @@ export default function Admin() {
                       value={userForm.name}
                       onChange={e => setUserForm({ ...userForm, name: e.target.value })}
                       placeholder="Full Name"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Designation</label>
+                    <input
+                      className="input"
+                      value={userForm.designation}
+                      onChange={e => setUserForm({ ...userForm, designation: e.target.value })}
+                      placeholder="e.g. Sales Manager"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Phone Number</label>
+                    <input
+                      className="input"
+                      value={userForm.phoneNumber}
+                      onChange={e => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+                      placeholder="e.g. +91 98765 43210"
                     />
                   </div>
                   <div>

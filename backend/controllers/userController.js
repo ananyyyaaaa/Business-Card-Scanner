@@ -391,4 +391,21 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-export { signupUser, sendOtp, verifyOtp, loginUser, checkAccess, getCurrentUser };
+// @desc    List all users (for dropdowns etc)
+// @route   GET /api/users
+// @access  Private
+const listUsers = async (req, res) => {
+  try {
+    // Return id, name, email, designation, phoneNumber
+    const users = await User.find().select('name email designation phoneNumber');
+    res.json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error('List users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export { signupUser, sendOtp, verifyOtp, loginUser, checkAccess, getCurrentUser, listUsers };

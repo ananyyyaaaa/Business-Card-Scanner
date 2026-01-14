@@ -440,9 +440,11 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                       Checklist
                     </button>
                   )}
-                  <button className="btn btn-view" onClick={() => setViewing(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FiEye />
-                  </button>
+                  {(isAdmin || selectedNav !== 'completed') && (
+                    <button className="btn btn-view" onClick={() => setViewing(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FiEye />
+                    </button>
+                  )}
                   {isAdmin && (
                     <>
                       <button className="btn btn-duplicate" onClick={() => handleOpenDuplicate(ex)} style={{ padding: '0', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -557,24 +559,26 @@ export default function Home({ setActiveExhibition, setTab, userName }) {
                           Checklist
                         </button>
                       )}
-                      <button
-                        className="btn"
-                        onClick={() => setViewing(ex)}
-                        title="View"
-                        style={{
-                          padding: '0',
-                          height: '32px',
-                          width: '32px',
-                          minWidth: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '50%',
-                          flexShrink: 0
-                        }}
-                      >
-                        <FiEye size={16} />
-                      </button>
+                      {(isAdmin || selectedNav !== 'completed') && (
+                        <button
+                          className="btn"
+                          onClick={() => setViewing(ex)}
+                          title="View"
+                          style={{
+                            padding: '0',
+                            height: '32px',
+                            width: '32px',
+                            minWidth: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            flexShrink: 0
+                          }}
+                        >
+                          <FiEye size={16} />
+                        </button>
+                      )}
                       {isAdmin && (
                         <>
                           <button

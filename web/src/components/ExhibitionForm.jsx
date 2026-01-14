@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FiSave, FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi';
-import { getExhibitionChecklist, updateExhibitionChecklist } from '../services/api.js';
+import { getExhibitionChecklist, updateExhibitionChecklist, getAllUsers } from '../services/api.js';
 
 const STAND_FIELDS = [
   { name: 'standNumber', label: 'Stand Number', placeholder: 'e.g. A-12' },
@@ -99,6 +99,13 @@ export default function ExhibitionForm() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState([]);
+
+  useEffect(() => {
+    getAllUsers().then(res => {
+      if (res.success) setAvailableUsers(res.data);
+    }).catch(err => console.error('Failed to load users', err));
+  }, []);
 
   // Load checklist data when component mounts or ID changes
   useEffect(() => {
@@ -201,6 +208,24 @@ export default function ExhibitionForm() {
         i === index ? { ...exhibitor, [field]: value } : exhibitor
       )
     }));
+  };
+
+  const handleUserSelect = (index, userId) => {
+    const user = availableUsers.find(u => u._id === userId);
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        exhibitors: prev.exhibitors.map((ex, i) =>
+          i === index ? {
+            ...ex,
+            name: user.name,
+            email: user.email,
+            designation: user.designation || '',
+            mobile: user.phoneNumber || ''
+          } : ex
+        )
+      }));
+    }
   };
 
   const handleChange = (name, value) => {
@@ -762,6 +787,23 @@ export default function ExhibitionForm() {
                     </button>
                   )}
                 </div>
+                {isEditing && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', color: '#666' }}>Select User to Autofill</label>
+                    <select
+                      className="input"
+                      onChange={(e) => handleUserSelect(index, e.target.value)}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select a user to autofill...</option>
+                      {availableUsers.map(u => (
+                        <option key={u._id} value={u._id}>
+                          {u.name} {u.designation ? `(${u.designation})` : ''} - {u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="form-grid two-column">
                   <div className="form-row">
                     <label>

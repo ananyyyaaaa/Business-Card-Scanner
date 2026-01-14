@@ -49,9 +49,47 @@ export const createExhibition = async (req, res) => {
   }
 };
 
+import User from "../models/User.js";
+import Admin from "../models/Admin.js";
+
+// ... existing code ...
+
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
 export const listExhibitions = async (req, res) => {
   try {
-    const items = await Exhibition.find().sort({ startTime: -1, createdAt: -1 });
+    const userId = req.user.id;
+
+    // 1. Check if the requester is an Admin
+    const admin = await Admin.findById(userId);
+    if (admin) {
+      // Admins see all exhibitions
+      const items = await Exhibition.find().sort({ startTime: -1, createdAt: -1 });
+      return res.json({ success: true, data: items });
+    }
+
+    // 2. Check if the requester is a User
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    // 3. Filter for Users (Case-insensitive matching)
+    //    - Tagged in 'exhibitors.email' matches user.email
+    //    - OR createdBy matches user.name
+    const emailRegex = new RegExp(`^${escapeRegex(user.email)}$`, 'i');
+    const nameRegex = new RegExp(`^${escapeRegex(user.name)}$`, 'i');
+
+    const items = await Exhibition.find({
+      $or: [
+        { 'exhibitors.email': emailRegex },
+        { 'exhibitorEmail': emailRegex }, // Legacy support
+        { createdBy: nameRegex }
+      ]
+    }).sort({ startTime: -1, createdAt: -1 });
+
     return res.json({ success: true, data: items });
   } catch (err) {
     console.error('List exhibitions error', err);
@@ -86,13 +124,41 @@ export const duplicateExhibition = async (req, res) => {
   }
 };
 
-export const getLiveExhibitions = async (_req, res) => {
+export const getLiveExhibitions = async (req, res) => {
   try {
     const now = new Date();
+    const userId = req.user.id;
+
+    // 1. Check if the requester is an Admin
+    const admin = await Admin.findById(userId);
+    if (admin) {
+      const items = await Exhibition.find({
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+      }).sort({ createdAt: -1 });
+      return res.json({ success: true, data: items });
+    }
+
+    // 2. Check if the requester is a User
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    // 3. Filter for Users (Case-insensitive)
+    const emailRegex = new RegExp(`^${escapeRegex(user.email)}$`, 'i');
+    const nameRegex = new RegExp(`^${escapeRegex(user.name)}$`, 'i');
+
     const items = await Exhibition.find({
       startTime: { $lte: now },
       endTime: { $gte: now },
+      $or: [
+        { 'exhibitors.email': emailRegex },
+        { 'exhibitorEmail': emailRegex },
+        { createdBy: nameRegex }
+      ]
     }).sort({ createdAt: -1 });
+
     return res.json({ success: true, data: items });
   } catch (err) {
     console.error('Get live exhibitions error', err);
