@@ -40,7 +40,7 @@ const LOGISTICS_FIELDS = [
   { name: 'logisticsMobile', label: 'Mobile', placeholder: '+971 4 123 4567' },
   { name: 'logisticsQuote', label: 'Final Quote', placeholder: 'USD 8,000' },
   { name: 'logisticsPayment', label: 'Payment Status', placeholder: 'Advance Paid / Due' },
-  { name: 'logisticsAwb', label: 'AWB Number', placeholder: 'AWB123456789' },
+  { name: 'logisticsAwb', label: 'Tracking Number', placeholder: 'AWB123456789' },
   { name: 'logisticsSamples', label: 'Samples Status', placeholder: 'In Transit / Delivered' },
 ];
 
@@ -61,6 +61,7 @@ export default function ExhibitionForm() {
     badgeChecklist: false,
     accommodationDetails: '',
     ticketsDetails: '',
+    tickets: [], // [{ file: File | string }]
     accommodationChecklist: false,
     contractorCompany: '',
     contractorPerson: '',
@@ -73,7 +74,10 @@ export default function ExhibitionForm() {
     posterChecklist: false,
     samplesPallet: '',
     samplesWeight: '',
+    samplesPallet: '', // Legacy, kept for backward compat if needed or removed
+    samplesWeight: '',
     samplesDimensions: '',
+    pallets: [{ name: '', weight: '', dimensions: '' }],
     samplesPackingList: null,
     samplesDispatchChecklist: false,
     logisticsCompany: '',
@@ -128,6 +132,7 @@ export default function ExhibitionForm() {
           badgeChecklist: data.badgeChecklist || false,
           accommodationDetails: data.accommodationDetails || '',
           ticketsDetails: data.ticketsDetails || '',
+          tickets: data.tickets || [],
           accommodationChecklist: data.accommodationChecklist || false,
           contractorCompany: data.contractorCompany || '',
           contractorPerson: data.contractorPerson || '',
@@ -141,6 +146,11 @@ export default function ExhibitionForm() {
           samplesPallet: data.samplesPallet || '',
           samplesWeight: data.samplesWeight || '',
           samplesDimensions: data.samplesDimensions || '',
+          pallets: (data.pallets && data.pallets.length > 0)
+            ? data.pallets
+            : (data.samplesPallet || data.samplesWeight || data.samplesDimensions)
+              ? [{ name: data.samplesPallet || '', weight: data.samplesWeight || '', dimensions: data.samplesDimensions || '' }]
+              : [{ name: '', weight: '', dimensions: '' }],
           samplesPackingList: data.samplesPackingList || null,
           samplesDispatchChecklist: data.samplesDispatchChecklist || false,
           logisticsCompany: data.logisticsCompany || '',
@@ -280,6 +290,21 @@ export default function ExhibitionForm() {
         }
       });
 
+      // Handle tickets array
+      const ticketMetadata = (form.tickets || []).map(t => ({
+        file: (t.file instanceof File) ? "" : t.file
+      }));
+      formData.append('tickets', JSON.stringify(ticketMetadata));
+
+      (form.tickets || []).forEach(t => {
+        if (t.file instanceof File) {
+          formData.append('ticketFile', t.file);
+        }
+      });
+
+      // Handle pallets array
+      formData.append('pallets', JSON.stringify(form.pallets || []));
+
       if (form.standDesign instanceof File) {
         formData.append('standDesign', form.standDesign);
       }
@@ -369,6 +394,82 @@ export default function ExhibitionForm() {
     setForm(prev => ({
       ...prev,
       deposits: prev.deposits.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const addTicket = () => {
+    setForm(prev => ({
+      ...prev,
+      tickets: [...(prev.tickets || []), { file: null }]
+    }));
+  };
+
+  const removeTicket = (idx) => {
+    setForm(prev => ({
+      ...prev,
+      tickets: prev.tickets.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleTicketFile = (idx, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Only PDF and JPEG files are allowed' });
+      e.target.value = '';
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_SIZE) {
+      setMessage({ type: 'error', text: 'File size must be less than 100MB' });
+      e.target.value = '';
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    setForm(prev => ({
+      ...prev,
+      tickets: prev.tickets.map((t, i) => i === idx ? { ...t, file: file } : t)
+    }));
+  };
+
+  const getTicketFileName = (value, index) => {
+    if (value instanceof File) return value.name;
+    if (typeof value === 'string' && value.startsWith('data:')) {
+      return `Ticket ${index + 1} (uploaded)`;
+    }
+    return 'Ticket (uploaded)';
+  };
+
+  const addPallet = () => {
+    setForm(prev => ({
+      ...prev,
+      pallets: [...(prev.pallets || []), { name: '', weight: '', dimensions: '' }]
+    }));
+  };
+
+  const removePallet = (index) => {
+    if (form.pallets.length <= 1) {
+      // Optional: clear the last one instead of removing if you want to enforce at least one
+      updatePallet(index, 'name', '');
+      updatePallet(index, 'weight', '');
+      updatePallet(index, 'dimensions', '');
+      return;
+    }
+    setForm(prev => ({
+      ...prev,
+      pallets: prev.pallets.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updatePallet = (index, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      pallets: prev.pallets.map((p, i) => i === index ? { ...p, [field]: value } : p)
     }));
   };
 
@@ -738,6 +839,54 @@ export default function ExhibitionForm() {
                 disabled={!isEditing}
               />
             </div>
+            <div className="form-row">
+              <label>Uploaded Tickets (PDF/JPEG)</label>
+              {(form.tickets || []).map((ticket, idx) => (
+                <div key={idx} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '12px',
+                  padding: '12px',
+                  background: 'rgba(96,165,250,0.05)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(96,165,250,0.2)'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/jpg"
+                      disabled={!isEditing}
+                      onChange={(e) => handleTicketFile(idx, e)}
+                    />
+                    {ticket.file && (
+                      <span className="muted" style={{ display: 'block', marginTop: '4px', fontSize: '12px' }}>
+                        {getTicketFileName(ticket.file, idx)}
+                      </span>
+                    )}
+                  </div>
+                  {isEditing && (
+                    <button
+                      className="btn danger"
+                      onClick={() => removeTicket(idx)}
+                      style={{ padding: '0 12px', height: '36px' }}
+                    >
+                      <FiTrash2 />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {isEditing && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={addTicket}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                >
+                  <FiPlus /> Add Ticket
+                </button>
+              )}
+            </div>
           </section>
 
           <section className="form-block">
@@ -782,38 +931,66 @@ export default function ExhibitionForm() {
           </section>
 
           <section className="form-block">
-            <h2>Samples & Logistics</h2>
-            <div className="form-grid three-column">
-              <div className="form-row">
-                <label>Dispatch Pallet / Box</label>
-                <input
-                  className="input"
-                  placeholder="Pallet A / Box 1"
-                  value={form.samplesPallet}
-                  onChange={(e) => handleChange('samplesPallet', e.target.value)}
-                  disabled={!isEditing}
-                />
+            <p style={{ color: '#36cbc0' }}>Samples & Logistics</p>
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ color: '#36cbc0' }}>Dispatch Pallets / Boxes</label>
+                {isEditing && (
+                  <button type="button" className="btn" onClick={addPallet} style={{ fontSize: '12px', padding: '4px 8px' }}>
+                    <FiPlus /> Add Pallet
+                  </button>
+                )}
               </div>
-              <div className="form-row">
-                <label>Weight</label>
-                <input
-                  className="input"
-                  placeholder="150 kg"
-                  value={form.samplesWeight}
-                  onChange={(e) => handleChange('samplesWeight', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="form-row">
-                <label>Dimensions</label>
-                <input
-                  className="input"
-                  placeholder="1m x 0.8m x 1.2m"
-                  value={form.samplesDimensions}
-                  onChange={(e) => handleChange('samplesDimensions', e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
+              {(form.pallets || []).map((pallet, index) => (
+                <div key={index} className="form-grid three-column" style={{
+                  marginBottom: '12px',
+                  paddingBottom: '12px',
+                  borderBottom: index < (form.pallets || []).length - 1 ? '1px dashed #eee' : 'none'
+                }}>
+                  <div className="form-row">
+                    <label style={{ fontSize: '12px', color: '#666' }}>Name / ID</label>
+                    <input
+                      className="input"
+                      placeholder="Pallet A / Box 1"
+                      value={pallet.name}
+                      onChange={(e) => updatePallet(index, 'name', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label style={{ fontSize: '12px', color: '#666' }}>Weight</label>
+                    <input
+                      className="input"
+                      placeholder="150 kg"
+                      value={pallet.weight}
+                      onChange={(e) => updatePallet(index, 'weight', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label style={{ fontSize: '12px', color: '#666' }}>Dimensions</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        className="input"
+                        placeholder="L x W x H"
+                        value={pallet.dimensions}
+                        onChange={(e) => updatePallet(index, 'dimensions', e.target.value)}
+                        disabled={!isEditing}
+                      />
+                      {isEditing && (form.pallets || []).length > 1 && (
+                        <button
+                          className="btn danger"
+                          onClick={() => removePallet(index)}
+                          style={{ padding: '0 8px' }}
+                          title="Remove Pallet"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="form-row">
               <label>Packaging List (PDF)</label>

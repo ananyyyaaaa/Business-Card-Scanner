@@ -42,6 +42,9 @@ const exhibitionSchema = new mongoose.Schema({
   badgeChecklist: { type: Boolean, default: false },
   accommodationDetails: { type: String, default: '' },
   ticketsDetails: { type: String, default: '' },
+  tickets: [{
+    file: { type: String, default: '' } // base64 PDF or JPEG
+  }],
   accommodationChecklist: { type: Boolean, default: false },
   contractorCompany: { type: String, default: '' },
   contractorPerson: { type: String, default: '' },
@@ -57,6 +60,11 @@ const exhibitionSchema = new mongoose.Schema({
   samplesDimensions: { type: String, default: '' },
   samplesPackingList: { type: String, default: '' }, // base64 PDF
   samplesDispatchChecklist: { type: Boolean, default: false },
+  pallets: [{
+    name: { type: String, default: '' },
+    weight: { type: String, default: '' },
+    dimensions: { type: String, default: '' }
+  }],
   logisticsCompany: { type: String, default: '' },
   logisticsContact: { type: String, default: '' },
   logisticsEmail: { type: String, default: '' },

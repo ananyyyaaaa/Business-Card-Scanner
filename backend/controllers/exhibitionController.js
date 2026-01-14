@@ -181,34 +181,53 @@ export const updateExhibitionChecklist = async (req, res) => {
       }
     }
 
-    // Process PDF files if uploaded
-    const allFiles = Object.values(req.files || {}).flat();
-    const pdfFiles = allFiles.filter(f => f.mimetype === 'application/pdf');
-    const newPayslips = [];
 
-    for (const pdfFile of pdfFiles) {
-      const pdfPath = path.join(__dirname, "..", "uploads", pdfFile.filename);
-      if (fs.existsSync(pdfPath)) {
-        const buffer = fs.readFileSync(pdfPath);
-        const base64Pdf = `data:${pdfFile.mimetype};base64,${buffer.toString("base64")}`;
+    // Handle pallets array
+    if (req.body.pallets) {
+      try {
+        const pallets = typeof req.body.pallets === 'string'
+          ? JSON.parse(req.body.pallets)
+          : req.body.pallets;
+        if (Array.isArray(pallets)) {
+          updateData.pallets = pallets;
+        }
+      } catch (e) {
+        console.warn('Failed to parse pallets:', e.message);
+      }
+    }
+
+    // Process files if uploaded
+    const allFiles = Object.values(req.files || {}).flat();
+    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+    const processedFiles = allFiles.filter(f => allowedMimeTypes.includes(f.mimetype));
+    const newPayslips = [];
+    const newTicketFiles = [];
+
+    for (const file of processedFiles) {
+      const filePath = path.join(__dirname, "..", "uploads", file.filename);
+      if (fs.existsSync(filePath)) {
+        const buffer = fs.readFileSync(filePath);
+        const base64File = `data:${file.mimetype};base64,${buffer.toString("base64")}`;
 
         // Map file field names to database fields
-        if (pdfFile.fieldname === 'perfInvoice') {
-          updateData.perfInvoice = base64Pdf;
-        } else if (pdfFile.fieldname === 'payslip') {
-          newPayslips.push(base64Pdf);
-        } else if (pdfFile.fieldname === 'standDesign') {
-          updateData.standDesign = base64Pdf;
-        } else if (pdfFile.fieldname === 'samplesPackingList') {
-          updateData.samplesPackingList = base64Pdf;
-        } else if (pdfFile.fieldname === 'insuranceFile') {
-          updateData.insuranceFile = base64Pdf;
+        if (file.fieldname === 'perfInvoice') {
+          updateData.perfInvoice = base64File;
+        } else if (file.fieldname === 'payslip') {
+          newPayslips.push(base64File);
+        } else if (file.fieldname === 'ticketFile') {
+          newTicketFiles.push(base64File);
+        } else if (file.fieldname === 'standDesign') {
+          updateData.standDesign = base64File;
+        } else if (file.fieldname === 'samplesPackingList') {
+          updateData.samplesPackingList = base64File;
+        } else if (file.fieldname === 'insuranceFile') {
+          updateData.insuranceFile = base64File;
         }
 
         // Clean up temp file
-        fs.unlink(pdfPath, (err) => {
+        fs.unlink(filePath, (err) => {
           if (err && err.code !== 'ENOENT') {
-            console.warn('Failed to remove temp PDF file:', pdfPath, err.message);
+            console.warn('Failed to remove temp file:', filePath, err.message);
           }
         });
       }
@@ -242,6 +261,32 @@ export const updateExhibitionChecklist = async (req, res) => {
       }
     } else {
       updateData.deposits = exhibition.deposits || [];
+    }
+
+    // Handle structured tickets
+    if (req.body.tickets) {
+      try {
+        let tickets = typeof req.body.tickets === 'string'
+          ? JSON.parse(req.body.tickets)
+          : req.body.tickets;
+
+        if (Array.isArray(tickets)) {
+          // Assign new ticket files to entries missing them
+          let fileIdx = 0;
+          tickets = tickets.map(t => {
+            if (!t.file && fileIdx < newTicketFiles.length) {
+              return { ...t, file: newTicketFiles[fileIdx++] };
+            }
+            return t;
+          });
+          updateData.tickets = tickets;
+        }
+      } catch (e) {
+        console.warn('Failed to parse tickets:', e.message);
+        updateData.tickets = exhibition.tickets || [];
+      }
+    } else {
+      updateData.tickets = exhibition.tickets || [];
     }
     if (!updateData.standDesign && exhibition.standDesign) {
       updateData.standDesign = exhibition.standDesign;
