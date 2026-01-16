@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShield, FiLock, FiServer } from 'react-icons/fi';
+import { FiShield, FiLock, FiServer, FiTrendingUp, FiPackage, FiBarChart2 } from 'react-icons/fi';
 import { login } from '../services/api';
 
 const Login = ({ onLogin }) => {
@@ -9,21 +9,14 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  // OTP functionality commented out - can be re-enabled later
-  // const [otp, setOtp] = useState('');
-  // const [step, setStep] = useState('credentials'); // 'credentials', 'otp'
-  // import { login, sendOtp } from '../services/api';
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
     try {
-      // Login without OTP - IP approval will be handled on backend
       const res = await login(email, password);
       if (res.token) {
         onLogin(res.token, res.role, email);
-        // Show message if IP is not approved yet
         if (res.message) {
           setMessage(res.message);
         }
@@ -36,81 +29,103 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  // OTP functions commented out for future use
-  // const handleCredentialsSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setMessage('');
-  //   try {
-  //     await sendOtp(email);
-  //     setStep('otp');
-  //     setMessage('OTP has been sent to your email. Please verify.');
-  //   } catch (error) {
-  //     console.error(error);
-  //     setError(error.message || 'Invalid credentials or failed to send OTP');
-  //   }
-  // };
-
-  // const handleOtpSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setMessage('');
-  //   try {
-  //     const res = await login(email, password, otp);
-  //     onLogin(res.token);
-  //   } catch (error) {
-  //     console.error(error);
-  //     setError(error.message || 'Invalid OTP or credentials');
-  //   }
-  // };
-
-  // const handleResendOtp = async () => {
-  //   setError('');
-  //   try {
-  //     await sendOtp(email);
-  //     setMessage('OTP has been resent to your email.');
-  //   } catch (error) {
-  //     setError(error.message || 'Failed to resend OTP.');
-  //   }
-  // };
-
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-form">
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <img src="/logo.jpg" alt="Logo" style={{ maxHeight: '60px' }} />
+    <div className="login-container">
+      <div className="login-left">
+        <div className="login-brand">
+          <h1>OMSONS GERMANY</h1>
+          <div className="login-badge">G.A.P. System</div>
+          <h2>Enterprise Resource Planning</h2>
+          <p className="login-tagline">Powering Modern Manufacturing Excellence</p>
+        </div>
+        
+        <div className="login-features">
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FiTrendingUp />
+            </div>
+            <div className="feature-content">
+              <h3>Production Planning</h3>
+              <p>Optimize your manufacturing workflow with intelligent scheduling</p>
+            </div>
           </div>
-          <h2>Sign in to continue</h2>
-          <p className="muted">Use your registered email and password</p>
-          {error && <div className="msg error">{error}</div>}
-          {message && <div className="msg success">{message}</div>}
-          <form onSubmit={handleSubmit} className="auth-form-fields">
-            <label className="auth-label">Email</label>
-            <input
-              type="email"
-              className="input auth-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
-              required
-            />
-            <label className="auth-label">Password</label>
-            <input
-              type="password"
-              className="input auth-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-            <button type="submit" className="primary auth-submit">
-              Login
-            </button>
-          </form>
-          <p className="auth-footnote">
-
-          </p>
+          
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FiPackage />
+            </div>
+            <div className="feature-content">
+              <h3>Smart Inventory</h3>
+              <p>Real-time tracking and management of your resources</p>
+            </div>
+          </div>
+          
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FiBarChart2 />
+            </div>
+            <div className="feature-content">
+              <h3>Business Intelligence</h3>
+              <p>Data-driven insights for better decision making</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="login-trust">
+          <p>Trusted by manufacturing leaders since 2025</p>
+        </div>
+      </div>
+      
+      <div className="login-right">
+        <div className="login-form-container">
+          <div className="login-form">
+            <h2>Welcome Back</h2>
+            <p className="login-subtitle">Sign in to access your ERP system</p>
+            
+            {error && <div className="msg error">{error}</div>}
+            {message && <div className="msg success">{message}</div>}
+            
+            <form onSubmit={handleSubmit} className="login-form-fields">
+              <div className="form-group">
+                <label>USERNAME</label>
+                <input
+                  type="email"
+                  className="login-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>PASSWORD</label>
+                <input
+                  type="password"
+                  className="login-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+              
+              <button type="submit" className="login-button">
+                Sign In
+              </button>
+            </form>
+            
+            <div className="login-help">
+              <p>Need Help?</p>
+              <button type="button" className="contact-button">
+                Contact Administrator
+              </button>
+            </div>
+            
+            <div className="login-copyright">
+              <p>© 2025 OMSONS GERMANY. All rights reserved.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
